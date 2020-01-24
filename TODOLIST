@@ -1,0 +1,26 @@
+* * * * *
+GENERAL
+* * * * *
+
+- Set running options 
+  Like -i [file] -n [nb of events] etc
+
+- Channel Channel Mapper for runs <= xxx (I think some cables misplugged at some point)
+- Signal Polarity inversion for runs < 1256
+
+- Take closest reference pedestal
+
+- Check event header of v0 and v1 are the same, and merge
+
+- Improve on reading the run & event header (-> through numpy and not struct.unpack)
+
+- Results storage ? ROOT ?
+
+
+* * * * *
+ANALYSIS
+* * * * *
+
+- pedestal wave to be removed : sliced poly fit ? FFT ? 
+- ROI/hit found : fit it ?
+- Track finder
