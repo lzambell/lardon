@@ -10,9 +10,9 @@ GENERAL
 
 - Take closest reference pedestal
 
-- Check event header of v0 and v1 are the same, and merge
+- Check event header of v0 and v1 are the same, and merge : DONE
 
-- Improve on reading the run & event header (-> through numpy and not struct.unpack)
+- Improve on reading the run & event header (-> through numpy and not struct.unpack) : DONE
 
 - Results storage ? ROOT ?
 
