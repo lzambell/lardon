@@ -23,20 +23,20 @@ header_type = np.dtype([
     ('cro', '<u4')
 ])
 
-def read_event(data):#, idx):
-    #data.seek(idx,0)
+def read_event(data, idx):
+    data.seek(idx,0)
     header_size = header_type.itemsize
-    at = 0
-    v0, lro, cro = read_event_header_np( data[at:at+header_size] )#data.read(header_size) )
-    at += header_size
-    npv0 = read_evt_uint32( data[at:at+cro] )#data.read(cro))
+    #at = 0
+    v0, lro, cro = read_event_header_np( data.read(header_size) )
+    #at += header_size
+    npv0 = read_evt_uint32( data.read(cro))
 
-    #data.read(1) #BRUNO BYTE
-    at += cro
-    at +=1 #BRUNO BYTE
-    v1, lro, cro = read_event_header_np( data[at:at+header_size] )#data.read(header_size))
-    at += header_size
-    npv1 = read_evt_uint32( data[at:at+cro] ) #data.read(cro))
+    data.read(1) #BRUNO BYTE
+    
+    
+    v1, lro, cro = read_event_header_np( data.read(header_size))
+    #at += header_size
+    npv1 = read_evt_uint32( data.read(cro))
     v = v0
     return v, npv0, npv1
     

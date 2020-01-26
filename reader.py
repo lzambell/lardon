@@ -18,7 +18,7 @@ import noise_filter as noise
 tstart = time.time()
 data = open("1323_10_a.cosmics", "rb")
 
-nevent = 30
+nevent = 1
 lowpasscut = 0.1 #MHz    
 freqlines  = [0.0234]
 signal_thresh = 3.5
@@ -64,7 +64,7 @@ event_pos = []
 event_pos.append( data.tell() )
 for i in range(nb_evt-1):
     data.seek(sequence[i], 1)
-    event_pos.append( data.tell() ) #get the bit position of each event
+    event_pos.append( data.tell() ) #get the byte position of each event
 
 #End of run header reading part
 
@@ -101,8 +101,8 @@ for ievent in range(nevent):
     #v1, lro, cro = read.read_event_header_np(data, idx)
     #v1.evt_nb_loc = 0
     #npdatav1 = read.read_evt_uint32( data.read(cro) )
-    data.seek(idx,0)
-    evt, npdatav0, npdatav1 = read.read_event( data.read(sequence[i]) )
+    #data.seek(idx,0)
+    evt, npdatav0, npdatav1 = read.read_event( data, idx)
     evt.evt_nb_loc = ievent
     
     print "RUN ",evt.run_nb, " EVENT ", evt.evt_nb_loc, " / ", evt.evt_nb_glob," is ", "good " if evt.evt_flag==True else "bad "
