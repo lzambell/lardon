@@ -59,7 +59,7 @@ def plot_waveform(data, legtitle, colors, run_nb, evt_nb):
         plt.legend()
         plt.subplots_adjust(bottom=0.05, top=.98, hspace=0.27)
     plt.savefig('ED/waveform_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
-    
+    plt.close()    
 
 
 
@@ -82,14 +82,13 @@ def plot_event_display(data, run_nb, evt_nb, option=None):
         option = "_"+option
     plt.savefig('ED/ed'+option+'_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
     #plt.show()
-
+    plt.close()
 
 
 
 def plot_pedestal(datas, legtitle, colors, run_nb, evt_nb):
     nplot = len(datas)
-    #colors = ['k','b','r']
-    #legtitle = ['Raw', 'FFT', 'Coherent']
+
     fig = plt.figure(figsize=(12,9))
     ax = []
     iplot = 0
@@ -108,7 +107,7 @@ def plot_pedestal(datas, legtitle, colors, run_nb, evt_nb):
     plt.subplots_adjust(bottom=0.08, top=0.95)
     plt.savefig('ED/pedrms_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
     #plt.show()
-
+    plt.close()
 
 
 
@@ -135,7 +134,7 @@ def plot_event_fft(data, run_nb, evt_nb):
     plt.subplots_adjust(bottom=0.08, top=0.95)
     plt.savefig('ED/fft_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
     #plt.show()
-
+    plt.close()
 
 
     

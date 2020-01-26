@@ -14,6 +14,18 @@ class event:
     time_ns     = 0
     ev_flag     = False
 
+    def __init__(self, run_nb, evt_glob, t_s, t_ns, flag):
+        self.run_nb = run_nb
+        self.evt_nb_glob = evt_glob
+        self.evt_nb_loc = -1
+        self.time_s = t_s
+        self.time_ns = t_ns
+        self.evt_flag = flag
+        
+    def __eq__(self, other):
+        return (self.run_nb, self.evt_nb_glob, self.evt_nb_loc, self.time_s, self.time_ns, self.evt_flag) == (other.run_nb, other.evt_nb_glob, other.evt_nb_loc, other.time_s, other.time_ns, other.evt_flag)
+        
+
 map_ref = []
 evt_list = []
 n_CRP = 4
