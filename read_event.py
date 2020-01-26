@@ -26,38 +26,81 @@ header_type = np.dtype([
 def read_event(data, idx):
     data.seek(idx,0)
     header_size = header_type.itemsize
-    #at = 0
-    v0, lro, cro = read_event_header_np( data.read(header_size) )
-    #at += header_size
+
+    v0, lro, cro = read_event_header( data.read(header_size) )
+
+    if(cro < 0):
+        return v0, [], []
+
+    if(lro > 0): #in case one day light readout is also written in the data file
+        data.read(lro, 1)
+
     npv0 = read_evt_uint32( data.read(cro))
 
-    data.read(1) #BRUNO BYTE
-    
-    
-    v1, lro, cro = read_event_header_np( data.read(header_size))
-    #at += header_size
+    data.read(1) #BRUNO BYTE (?)
+        
+    v1, lro, cro = read_event_header( data.read(header_size))
+
+    if(cro < 0):
+        return v1, [], []
+
+    if(lro > 0):
+        data.read(lro, 1)
+
     npv1 = read_evt_uint32( data.read(cro))
-    v = v0
+    v = check_and_merge_events(v0, v1)
     return v, npv0, npv1
     
-def read_event_header_np(data):#, idx):
-    #data.seek(idx,0)
-    #head = np.frombuffer(data.read(header_type.itemsize), dtype=header_type)
+def read_event_header(data):
     head = np.frombuffer(data, dtype=header_type)
-    
-    if( not((head['k0'][0] & 0xFF)==evskey and (head['k1'][0] & 0xFF)==evskey)):
-        print " problem " ## AND SHOULD DO SOMETHING
-    good_evt = (head['evt_flag'][0] & 0x3F)==evdcard0
+            
+    return check_and_build_event(head)
 
-    ev = cf.event()
-    ev.run_nb = head['run_num'][0]
-    ev.evt_nb_glob = head['evt_num'][0]
-    ev.time_s = head['time_s'][0]
-    ev.time_ns = head['time_ns'][0]
-    ev.evt_flag = good_evt
-
-    return ev, head['lro'][0], head['cro'][0]
         
+def read_evt_uint32(data):
+    #solution from 
+    #https://stackoverflow.com/questions/44735756/python-reading-12-bit-binary-files
+    #could be faster with numba
+
+
+    tt = np.frombuffer(data, dtype=np.uint8)
+    
+    fst_uint8, mid_uint8, lst_uint8 = np.reshape(tt, (tt.shape[0] // 3, 3)).astype(np.uint16).T
+    fst_uint12 = (fst_uint8 << 4) + (mid_uint8 >> 4)
+    snd_uint12 = ((mid_uint8 % 16) << 8) + lst_uint8
+    return np.reshape(np.concatenate((fst_uint12[:, None], snd_uint12[:, None]), axis=1), 2 * fst_uint12.shape[0])
+
+
+
+def check_and_build_event(header):
+    if( not((header['k0'][0] & 0xFF)==evskey and (header['k1'][0] & 0xFF)==evskey)):
+        print " problem "         
+        return throw_bad_event(), -1, -1
+
+    good_evt = (header['evt_flag'][0] & 0x3F)==evdcard0
+    if(good_evt is False):
+        print " problem "         
+        return throw_bad_event(), -1, -1
+
+    ev = cf.event(header['run_num'][0], header['evt_num'][0], header['time_s'][0], header['time_ns'][0], good_evt)
+
+    return ev, header['lro'][0], header['cro'][0]
+
+
+def check_and_merge_events(v0, v1):
+    if(v0 == v1 and v0.evt_flag == True): #in case both are bad events
+        return v0
+    else:
+        return throw_bad_event()
+
+def throw_bad_event():
+    return event(-1, -1, -1, -1, False)
+    
+
+
+
+"""
+#Slow - kept just in case
 def read_event_header(data, idx):
     data.seek(idx,0)
     fmt_control = 'BB'
@@ -98,16 +141,4 @@ def read_event_header(data, idx):
     ev.evt_flag = good_evt
 
     return ev, lro, cro
-
-def read_evt_uint32(data):
-    #solution from 
-    #https://stackoverflow.com/questions/44735756/python-reading-12-bit-binary-files
-    #could be faster with numba
-
-
-    tt = np.frombuffer(data, dtype=np.uint8)
-    
-    fst_uint8, mid_uint8, lst_uint8 = np.reshape(tt, (tt.shape[0] // 3, 3)).astype(np.uint16).T
-    fst_uint12 = (fst_uint8 << 4) + (mid_uint8 >> 4)
-    snd_uint12 = ((mid_uint8 % 16) << 8) + lst_uint8
-    return np.reshape(np.concatenate((fst_uint12[:, None], snd_uint12[:, None]), axis=1), 2 * fst_uint12.shape[0])
+"""
