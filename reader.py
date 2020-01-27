@@ -40,7 +40,7 @@ for index, arg in enumerate(sys.argv):
 	    
 for index, arg in enumerate(sys.argv):
         if arg in ['-n_evt'] and len(sys.argv) > index + 1:
-            nevent = sys.argv[index + 1]
+            nevent = int(sys.argv[index + 1])
             del sys.argv[index]
             del sys.argv[index]
             break
