@@ -2,6 +2,7 @@ import sys
 import numpy as np
 #import numpy.ma as ma
 import time
+import sys
 
 
 import config as cf
@@ -11,9 +12,39 @@ import read_event as read
 import plot_event as plot_ev
 import noise_filter as noise
 
+is_error = False
 
+if len(sys.argv) == 1:
+        is_error = True
+else:
+	for index, arg in enumerate(sys.argv):
+        	if arg in ['-h'] :
+            		is_error=True
+            		del sys.argv[index]
+            		del sys.argv[index]
+            		break
+
+for index, arg in enumerate(sys.argv):
+        if arg in ['-run_n'] and len(sys.argv) > index + 1:
+            run_n = sys.argv[index + 1]
+            del sys.argv[index]
+            del sys.argv[index]
+            break
+
+for index, arg in enumerate(sys.argv):
+        if arg in ['-evt_file'] and len(sys.argv) > index + 1:
+            evt_file = sys.argv[index + 1]
+            del sys.argv[index]
+            del sys.argv[index]
+            break
+
+raw_data = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 tstart = time.time()
-data = open("1323_10_a.cosmics", "rb")
+data = open(raw_data + run_n + "/" + evt_file, "rb")
+#"/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/1323/1323_10_a.cosmics
+
+if is_error:
+        print('Usage: python reader.py [ -run_n <run number ex:1323> ] [ -evt_file <file evt ex:1323_10_a.cosmics> ] ')
 
 nevent = 5
 
