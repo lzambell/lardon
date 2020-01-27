@@ -37,16 +37,25 @@ for index, arg in enumerate(sys.argv):
             del sys.argv[index]
             del sys.argv[index]
             break
+	    
+for index, arg in enumerate(sys.argv):
+        if arg in ['-n_evt'] and len(sys.argv) > index + 1:
+            nevent = sys.argv[index + 1]
+            del sys.argv[index]
+            del sys.argv[index]
+            break
+	    
+if is_error:
+        print('Usage: python reader.py [ -run_n <run number ex:1323> ] [ -evt_file <file evt ex:1323_10_a.cosmics> ] [ -n_evt <number of event to process> ]')
+
 
 raw_data = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 tstart = time.time()
 data = open(raw_data + run_n + "/" + evt_file, "rb")
 #"/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/1323/1323_10_a.cosmics
 
-if is_error:
-        print('Usage: python reader.py [ -run_n <run number ex:1323> ] [ -evt_file <file evt ex:1323_10_a.cosmics> ] ')
 
-nevent = 5
+#nevent = 5
 
 """ Analysis parameters """
 lowpasscut     = 0.1 #MHz    
