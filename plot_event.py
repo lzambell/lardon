@@ -1,8 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-
-
+    
 cdict1 = {
     'red': ((0.,    65./255.,  65./255.),
             (0.15, 123./255., 123./255.),
