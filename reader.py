@@ -1,6 +1,8 @@
 import sys
+import os
 import numpy as np
 import time 
+
 
 import matplotlib.pyplot as plt
 import config as cf
@@ -9,58 +11,27 @@ import channelmapper as cmap
 import read_event as read
 import plot_event as plot_ev
 import noise_filter as noise
-
-
-is_error = False
-
-if len(sys.argv) == 1:
-        is_error = True
-else:
-	for index, arg in enumerate(sys.argv):
-        	if arg in ['-h'] :
-            		is_error=True
-            		del sys.argv[index]
-            		del sys.argv[index]
-            		break
-
-for index, arg in enumerate(sys.argv):
-        if arg in ['-run_n'] and len(sys.argv) > index + 1:
-            run_n = sys.argv[index + 1]
-            del sys.argv[index]
-            del sys.argv[index]
-            break
-
-for index, arg in enumerate(sys.argv):
-        if arg in ['-evt_file'] and len(sys.argv) > index + 1:
-            evt_file = sys.argv[index + 1]
-            del sys.argv[index]
-            del sys.argv[index]
-            break
-	    
-for index, arg in enumerate(sys.argv):
-        if arg in ['-n_evt'] and len(sys.argv) > index + 1:
-            nevent = int(sys.argv[index + 1])
-            del sys.argv[index]
-            del sys.argv[index]
-            break
-	    
-if is_error:
-        print('Usage: python reader.py [ -run_n <run number ex:1323> ] [ -evt_file <file evt ex:1323_10_a.cosmics> ] [ -n_evt <number of event to process> ]')
-
-
-raw_data = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
-
 """this part needs sklearn"""
 #import clustering as clus
 
 
-tstart = time.time()
-data = open(raw_data + run_n + "/" + evt_file, "rb")
-#"/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/1323/1323_10_a.cosmics
+def need_help():
+        print "Usage: python reader.py "
+        print " -run <run number ex:1323> "
+        print " -sub <sub file ex: 10_a> "
+        print " -n   <number of event to process>  [default (or -1) is all]"
+        print " -type <evt type cosmics/ped/...> [default is cosmics]"
+        print " -h print this message"
+        sys.exit()
+        
 
+if len(sys.argv) == 1:
+        need_help()
+else:
+	for index, arg in enumerate(sys.argv):
+        	if arg in ['-h'] :
+            		need_help()
 
-
-#nevent = 5
 
 """ Analysis parameters """
 lowpasscut     = 0.1 #MHz    
@@ -70,16 +41,44 @@ adc_thresh     = 6.
 coherent_group = 64
 
 
+nevent = -1 
+evt_type = "cosmics"                  
+
+for index, arg in enumerate(sys.argv):
+        if arg in ['-run'] and len(sys.argv) > index + 1:
+                run_n = sys.argv[index + 1]
+        elif arg in ['-sub'] and len(sys.argv) > index + 1:
+                evt_file = sys.argv[index + 1]
+        elif arg in ['-n'] and len(sys.argv) > index + 1:
+                nevent = int(sys.argv[index + 1])
+        elif arg in ['-type'] and len(sys.argv) > index + 1:
+                evt_type = sys.argv[index + 1]
+
+
+
+
+tstart = time.time()
+name = cf.data_path + run_n + "/" + run_n + "_" + evt_file + "." + evt_type
+
+if(os.path.exists(name) is False):
+        print " ERROR ! file ", name, " do not exists ! "
+        sys.exit()
+
+data = open(name, "rb")
+
 cmap.ChannelMapper()
 ped.MapRefPedestal()
+
+
 
 """ Reading Run Header """
 run_nb, nb_evt = np.fromfile(data, dtype='<u4', count=2)
 
 if(nevent > nb_evt or nevent < 0):
-    print "only ", nb_evt, " in this file"
     nevent = nb_evt
-    
+
+print " --->> Will process ", nevent, " events [ out of ", nb_evt, "] of run ", run_nb
+
 sequence = []
 for i in range(nb_evt):
     seq  = np.fromfile( data, dtype='<u4', count=4)
@@ -91,7 +90,6 @@ event_pos.append( data.tell() )
 for i in range(nb_evt-1):
     data.seek(sequence[i], 1)
     event_pos.append( data.tell() ) #get the byte position of each event
-
 """ End of run header reading part """
 
 
@@ -125,6 +123,8 @@ for idaq in range(cf.n_ChanTot):
     if(crp > 1): continue
     ped_ref[crp, view, vch] = ped.GetPedRMS(idaq)
 """
+
+
 for ievent in range(nevent):
     print "-*-*-*-*-*-*-*-*-*-*-"
     print " READING EVENT ", ievent
@@ -209,8 +209,7 @@ for ievent in range(nevent):
     """invert the mask, so now True is signal (and not broken channels)"""    
     ROI = np.array(~mask & alive_chan, dtype=int)
     #only for plotting purpose
-    #ROI *= 50 #npalldata 
-    
+    #ROI *= 50 #npalldata     
     #ROI = clus.rebin(ROI, 2, 5)
 
     """
