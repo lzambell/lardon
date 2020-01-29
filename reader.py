@@ -1,9 +1,8 @@
 import sys
 import numpy as np
-#import numpy.ma as ma
-import time
+import time 
 
-
+import matplotlib.pyplot as plt
 import config as cf
 import pedestals as ped
 import channelmapper as cmap
@@ -11,16 +10,20 @@ import read_event as read
 import plot_event as plot_ev
 import noise_filter as noise
 
+"""this part needs sklearn"""
+#import clustering as clus
+
 
 tstart = time.time()
 data = open("1323_10_a.cosmics", "rb")
 
-nevent = 5
+nevent = 10
+
 
 """ Analysis parameters """
 lowpasscut     = 0.1 #MHz    
-freqlines      = [0.0234]
-signal_thresh  = 3.5
+freqlines      = [0.00125, 0.0234] #in MHz
+signal_thresh  = 4.
 adc_thresh     = 6.
 coherent_group = 64
 
@@ -31,7 +34,7 @@ ped.MapRefPedestal()
 """ Reading Run Header """
 run_nb, nb_evt = np.fromfile(data, dtype='<u4', count=2)
 
-if(nevent > nb_evt):
+if(nevent > nb_evt or nevent < 0):
     print "only ", nb_evt, " in this file"
     nevent = nb_evt
     
@@ -71,8 +74,15 @@ alive_chan = np.ones((2,cf.n_View, cf.n_ChanPerCRP, cf.n_Sample), dtype=bool)
 for ibrok in cf.broken_channels:
     crp, view, vch = cmap.DAQToCRP(ibrok)
     alive_chan[crp, view, vch, : ] = False
-    
 
+"""
+#could be needed for comparisons
+ped_ref = np.zeros((2, cf.n_View, cf.n_ChanPerCRP)) #crp, view, vchan
+for idaq in range(cf.n_ChanTot):
+    crp, view, vch = cmap.DAQToCRP(idaq)    
+    if(crp > 1): continue
+    ped_ref[crp, view, vch] = ped.GetPedRMS(idaq)
+"""
 for ievent in range(nevent):
     print "-*-*-*-*-*-*-*-*-*-*-"
     print " READING EVENT ", ievent
@@ -108,7 +118,8 @@ for ievent in range(nevent):
 
     
     """reshape the array and subtract reference pedestal"""
-    """for noise processing, the reshaping is useless but makes the code readable - change in the future ? """
+    """for noise processing, the reshaping is useless 
+    but makes the code readable - change in the future ? """
     
     for idq in range(cf.n_ChanTot):
         crp, view, vch = cmap.DAQToCRP(idq)
@@ -131,13 +142,18 @@ for ievent in range(nevent):
     
     """ 1st ROI attempt based on ADC cut + broken channels """
     mask = np.where( (npalldata > adc_thresh) | ~alive_chan, False, True)
+    ped_ini = noise.get_RMS(npalldata*mask)
 
     """ Update ROI based on ped rms """
+    troi = time.time()
     mask = noise.define_ROI(npalldata, mask, signal_thresh, 2)
     
     t3 = time.time()
-    """Apply coherent filter """
+    print " 1st ROi : %.2f"% (t3-troi)
+
+    """Apply coherent filter(s) """
     npalldata = noise.coherent_filter(npalldata, mask, coherent_group)
+    npalldata = noise.coherent_filter(npalldata, mask, 320)
         
     print " time to coh filt %.2f"%( time.time() - t3)
 
@@ -148,16 +164,20 @@ for ievent in range(nevent):
     mask = noise.define_ROI(npalldata, mask, signal_thresh, 2)
     print " time to ROI %.2f"%(time.time() - t4)
 
+    """invert the mask, so now True is signal (and not broken channels)"""    
+    ROI = np.array(~mask & alive_chan, dtype=int)
+    #only for plotting purpose
+    #ROI *= 50 #npalldata 
+    
+    #ROI = clus.rebin(ROI, 2, 5)
 
-
-    ROI = np.array(~mask, dtype=int)
-    ROI *= 50
+    """
     plot_ev.plot_event_display(npalldata, evt.run_nb, evt.evt_nb_glob,"filt")
-    plot_ev.plot_event_display(ROI, evt.run_nb, evt.evt_nb_glob, "ROI")
+    plot_ev.plot_event_display(ROI, evt.run_nb, evt.evt_nb_glob, "ROI_rb")
 
-    ped_rms = noise.get_RMS(npalldata*mask)
-    plot_ev.plot_pedestal([ped_rms], ['Final'],['r'], evt.run_nb, evt.evt_nb_glob)
-
+    ped_fin = noise.get_RMS(npalldata*mask)
+    plot_ev.plot_pedestal([ped_ref, ped_ini, ped_fin], ['Ref.', 'Raw', 'Final'],['r','k','b'], evt.run_nb, evt.evt_nb_glob)
+    """
 
 data.close()
 tottime = time.time() - tstart

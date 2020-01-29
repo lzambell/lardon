@@ -1,13 +1,16 @@
 import config as cf
 import numpy as np
-import numpy.ma as ma
+import numexpr as ne 
 
 
 def define_ROI(data, mask, sig_thresh, iteration):
+    #ne.set_num_threads(4)
     """ Update the mask based on pedestal RMS """    
     for it in range(iteration):
         rms = get_RMS(data*mask)
-        mask = np.where( (data > sig_thresh*rms[:,:,:,None]) | (~mask), False, True)
+        #mask = np.where( (data > sig_thresh*rms[:,:,:,None]) | (~mask), False, True)    
+        rms = rms[:,:,:,None]
+        mask = ne.evaluate( "where((data > sig_thresh*rms) | (~mask), 0, 1)" ).astype(bool)
     return mask
 
 
@@ -59,29 +62,31 @@ def gaussian(x, mu, sig):
 
 def FFTLowPass(data, lowpass, freqlines) :
 
-    #it's 5001 (n/2+1) points from 0Hz to 1./(2*sampling) = 1.25MHz (nyquist freq)
+    """it's 5001 (n/2+1) points from 0Hz to 1./(2*sampling) = 1.25MHz (nyquist freq)"""
     
     n    = cf.n_Sample/2 + 1
     rate = 1./cf.n_Sampling #in MHz
     freq = np.linspace(0, rate/2., n)
 
-    #define gaussian low pass filter
+    """define gaussian low pass filter"""
     gauss_cut = np.where(freq < lowpass, 1., gaussian(freq, lowpass, 0.02))
     
+    """remove specific ferquencies"""
     for f in freqlines:
-        fbin = f * cf.n_Sample * cf.n_Sampling
-        gauss_cut[fbin-2:fbin+3] = 0.1
-        gauss_cut[fbin-1:fbin+2] = 0.
+        fbin = int(f * cf.n_Sample * cf.n_Sampling)
+        #print "frequency ", f, " at bin ", fbin
+        gauss_cut[max(fbin-2,0):min(fbin+3,n)] = 0.1
+        gauss_cut[max(fbin-1,0):min(fbin+2,n)] = 0.
 
-    #go to frequency domain
+    """go to frequency domain"""
     fdata = np.fft.rfft(data)
     
-    #Apply filter
+    """Apply filter"""
     fdata *= gauss_cut[None, None, None, :]
 
-    #go back to time
+    """go back to time"""
     data = np.fft.irfft(fdata)
 
-    #get power spectrum
+    """get power spectrum"""
     #ps = 10.*np.log10(np.abs(fdata)) 
     return data #,ps
