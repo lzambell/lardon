@@ -9,6 +9,7 @@ def dump(i):
 
 def GetPed(i):
     return cf.map_ref[i].ped
+
 def GetPedRMS(i):
     return cf.map_ref[i].rms
 
