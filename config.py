@@ -25,7 +25,7 @@ class event:
     def __eq__(self, other):
         return (self.run_nb, self.evt_nb_glob, self.evt_nb_loc, self.time_s, self.time_ns, self.evt_flag) == (other.run_nb, other.evt_nb_glob, other.evt_nb_loc, other.time_s, other.time_ns, other.evt_flag)
         
-
+data_path = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 map_ref = []
 evt_list = []
 n_CRP = 4
