@@ -1,4 +1,5 @@
 import config as cf
+import glob 
 
 def dump(i):
     print " DAQCH ", i
@@ -13,9 +14,25 @@ def GetPed(i):
 def GetPedRMS(i):
     return cf.map_ref[i].rms
 
+def get_closest_ped_run(run):
+    calib_runs = glob.glob(cf.calib_path+"noise*.dat")
+    crop = len(cf.calib_path)+6 #for 'noise_'
+    calib_runs_nb = [elem[crop:] for elem in calib_runs]
+    calib_runs_nb = [int(elem[:elem.find("_")]) for elem in calib_runs_nb]
 
-def MapRefPedestal():
-    with open("/afs/cern.ch/user/n/np02onlp/public/calib/pedestals/noise_1317_5_b.dat", "r") as pedcalib:
+    if(run >= calib_runs_nb[-1]):
+        return calib_runs[-1]
+    else:
+        for irun in range(len(calib_runs_nb)-1):
+            if(calib_runs_nb[irun+1] > run):
+                return calib_runs[irun]
+    return calib_runs[0] #in case of problems
+
+def MapRefPedestal(run):
+    reference_file = get_closest_ped_run(run)
+    print "Will use calibration run : ", reference_file
+
+    with open(reference_file, "r") as pedcalib:
         for iline in pedcalib:
             li = iline.split()
             daqch = int(li[0])

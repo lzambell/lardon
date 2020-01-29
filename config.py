@@ -12,7 +12,7 @@ class event:
     evt_nb_glob = -1 #in the run
     time_s      = 0
     time_ns     = 0
-    ev_flag     = False
+    evt_flag     = False
 
     def __init__(self, run_nb, evt_glob, t_s, t_ns, flag):
         self.run_nb      = run_nb
@@ -26,6 +26,8 @@ class event:
         return (self.run_nb, self.evt_nb_glob, self.evt_nb_loc, self.time_s, self.time_ns, self.evt_flag) == (other.run_nb, other.evt_nb_glob, other.evt_nb_loc, other.time_s, other.time_ns, other.evt_flag)
         
 data_path = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
+calib_path = "/afs/cern.ch/user/n/np02onlp/public/calib/pedestals/"
+
 map_ref = []
 evt_list = []
 n_CRP = 4
@@ -41,3 +43,5 @@ n_Sampling = 0.4 #in mu-seconds
 # should be turned into a function depending on run nb
 # shall add lem borders ? 
 broken_channels = [3508, 3507, 3505, 3504]
+
+run_inv_signal = 1256

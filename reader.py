@@ -15,23 +15,24 @@ import noise_filter as noise
 #import clustering as clus
 
 
+
 def need_help():
-        print "Usage: python reader.py "
-        print " -run <run number ex:1323> "
-        print " -sub <sub file ex: 10_a> "
-        print " -n   <number of event to process>  [default (or -1) is all]"
-        print " -type <evt type cosmics/ped/...> [default is cosmics]"
-        print " -h print this message"
-        sys.exit()
-        
+	print "Usage: python reader.py "
+	print " -run <run number ex:1323> "
+	print " -sub <sub file ex: 10_a> "
+	print " -n   <number of event to process>  [default (or -1) is all]"
+	print " -type <evt type cosmics/ped/...> [default is cosmics]"
+	print " -h print this message"
+	sys.exit()
+	
 
 if len(sys.argv) == 1:
-        need_help()
+	need_help()
 else:
 	for index, arg in enumerate(sys.argv):
-        	if arg in ['-h'] :
-            		need_help()
-
+		if arg in ['-h'] :
+			need_help()
+			
 
 """ Analysis parameters """
 lowpasscut     = 0.1 #MHz    
@@ -42,38 +43,38 @@ coherent_group = 64
 
 
 nevent = -1 
-evt_type = "cosmics"                  
+evt_type = "cosmics"		  
 
 for index, arg in enumerate(sys.argv):
-        if arg in ['-run'] and len(sys.argv) > index + 1:
-                run_n = sys.argv[index + 1]
-        elif arg in ['-sub'] and len(sys.argv) > index + 1:
-                evt_file = sys.argv[index + 1]
-        elif arg in ['-n'] and len(sys.argv) > index + 1:
-                nevent = int(sys.argv[index + 1])
-        elif arg in ['-type'] and len(sys.argv) > index + 1:
-                evt_type = sys.argv[index + 1]
+	if arg in ['-run'] and len(sys.argv) > index + 1:
+		run_n = sys.argv[index + 1]
+	elif arg in ['-sub'] and len(sys.argv) > index + 1:
+		evt_file = sys.argv[index + 1]
+	elif arg in ['-n'] and len(sys.argv) > index + 1:
+		nevent = int(sys.argv[index + 1])
+	elif arg in ['-type'] and len(sys.argv) > index + 1:
+		evt_type = sys.argv[index + 1]
+		
 
-
-
+		
 
 tstart = time.time()
 name = cf.data_path + run_n + "/" + run_n + "_" + evt_file + "." + evt_type
 
 if(os.path.exists(name) is False):
-        print " ERROR ! file ", name, " do not exists ! "
-        sys.exit()
+	print " ERROR ! file ", name, " do not exists ! "
+	sys.exit()
 
 data = open(name, "rb")
 
 cmap.ChannelMapper()
-ped.MapRefPedestal()
+
 
 
 
 """ Reading Run Header """
 run_nb, nb_evt = np.fromfile(data, dtype='<u4', count=2)
-
+ped.MapRefPedestal(run_nb)
 if(nevent > nb_evt or nevent < 0):
     nevent = nb_evt
 
@@ -119,9 +120,9 @@ for ibrok in cf.broken_channels:
 #could be needed for comparisons
 ped_ref = np.zeros((2, cf.n_View, cf.n_ChanPerCRP)) #crp, view, vchan
 for idaq in range(cf.n_ChanTot):
-    crp, view, vch = cmap.DAQToCRP(idaq)    
-    if(crp > 1): continue
-    ped_ref[crp, view, vch] = ped.GetPedRMS(idaq)
+crp, view, vch = cmap.DAQToCRP(idaq)    
+if(crp > 1): continue
+ped_ref[crp, view, vch] = ped.GetPedRMS(idaq)
 """
 
 
@@ -146,14 +147,15 @@ for ievent in range(nevent):
     print " -> Reading time %.2f s"%( tevtdata - tevtread)
 
     if( len(npdatav0)/cf.n_Sample != cf.n_ChanPerView):
-        print " PBM OF Nb of CHANNELS in V0 !!! ", len(npdatav0)/cf.n_Sample , " vs ", cf.n_ChanPerView
+	print " PBM OF Nb of CHANNELS in V0 !!! ", len(npdatav0)/cf.n_Sample , " vs ", cf.n_ChanPerView
     if( len(npdatav1)/cf.n_Sample != cf.n_ChanPerView):
-        print " PBM OF Nb of CHANNELS in V1 !!! ", len(npdatav1)/cf.n_Sample , " vs ", cf.n_ChanPerView
-        
+	print " PBM OF Nb of CHANNELS in V1 !!! ", len(npdatav1)/cf.n_Sample , " vs ", cf.n_ChanPerView
+	
 
     npdatav0 = np.split(npdatav0, cf.n_ChanPerView)
     npdatav1 = np.split(npdatav1, cf.n_ChanPerView)
 
+        
     """reset"""
     npalldata[:,:,:,:] = 0.
     mask[:,:,:,:] = True
@@ -164,20 +166,23 @@ for ievent in range(nevent):
     but makes the code readable - change in the future ? """
     
     for idq in range(cf.n_ChanTot):
-        crp, view, vch = cmap.DAQToCRP(idq)
-        if(crp > 1): continue #Do not care about CRP 2 & 3 ATM
-        pedval = ped.GetPed(idq)
-        if(crp < 0 or view < 0 or vch < 0):
-            print " ERROR ? ", idq
-        if(view==0):
-            npalldata[crp,view,vch] = npdatav0[idq] - pedval            
-        elif(view==1):
-            npalldata[crp,view,vch] = npdatav1[idq-3840] - pedval
-            
-            
+	crp, view, vch = cmap.DAQToCRP(idq)
+	if(crp > 1): continue #Do not care about CRP 2 & 3 ATM
+	pedval = ped.GetPed(idq)
+	if(crp < 0 or view < 0 or vch < 0):
+	    print " ERROR ? ", idq
+	if(view==0):
+	    npalldata[crp,view,vch] = npdatav0[idq] - pedval	    
+	elif(view==1):
+	    npalldata[crp,view,vch] = npdatav1[idq-3840] - pedval
+    
+
+    if(run_nb <= cf.run_inv_signal):
+        npalldata *= -1.    
+	    
     print " done getting event ", ievent, " ! %.2f"%(time.time() - tevtdata)
-    
-    
+
+
     tfft = time.time()
     npalldata = noise.FFTLowPass(npalldata, lowpasscut, freqlines)    
     print " time to fft %.2f"%( time.time() - tfft)
@@ -196,7 +201,7 @@ for ievent in range(nevent):
     """Apply coherent filter(s) """
     npalldata = noise.coherent_filter(npalldata, mask, coherent_group)
     npalldata = noise.coherent_filter(npalldata, mask, 320)
-        
+	
     print " time to coh filt %.2f"%( time.time() - t3)
 
 
