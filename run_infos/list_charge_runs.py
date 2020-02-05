@@ -18,7 +18,7 @@ def list_all_runs(folder, last_run):
         afile = sub_runs[0]
         datatype = afile[afile.find(".")+1:]
         nb_files = len(sub_runs)
-        nevent = nb_files * 30
+
     
         sub_runs = [ x[path_len + len(str(run_nb)) + 1 + len(str(run_nb)) + 1:] for x in sub_runs]
     
@@ -46,7 +46,7 @@ def list_all_runs(folder, last_run):
         missing = abs(count_files - nb_files)
         if(missing >0):
             print " missing files in run ", run_nb, " nb of files: ", nb_files, " counting ", count_files
-        d.append( (run_nb, nb_files, nevent, datatype, first_sub, last_sub, missing) )
+        d.append( (run_nb, nb_files, datatype, first_sub, last_sub, missing) )
     return d
 
 
@@ -66,7 +66,6 @@ list_folder = [x for x in list_all if os.path.isdir(x)]
 
 col = ['run', 
        'n_files',
-       'n_event_up',
        'type',
        'first_sub_file',
        'last_sub_file',
@@ -89,16 +88,24 @@ if(os.path.exists(file_all_runs)):
         update = list_all_runs(list_folder, last_run_logged)
 
         update_df = pd.DataFrame(update, columns=col)        
-        update_df.sort(['run'])
+        update_df.sort_values(by='run')
 
-        df = [current_df, update_df]
+        #df = [current_df, update_df]
         df = pd.concat([current_df, update_df])
         print " now --> ", len(df), " logged files "
 
         df.to_csv(file_all_runs,index=False)
-
-        df_cos = df.groupby('type').get_group('cosmics')
-        df_cos.to_csv(file_cosmics_runs,index=False)
+        if(os.path.exists(file_cosmics_runs)):
+            current_df_cos = pd.read_csv(file_cosmics_runs)
+            update_df_cos = update_df.groupby('type').get_group('cosmics')
+            update_df_cos = update_df_cos.reindex(columns = update_df_cos.columns.tolist() + ['nb_event','tstart', 'tstop', 'len_s','rate'])
+            #df_cos = [current_cos_df, update_df_cos]
+            df_cos = pd.concat([current_df_cos, update_df_cos])
+            df_cos.to_csv(file_cosmics_runs,index=False)
+        else:
+            df_cos = df.groupby('type').get_group('cosmics')
+            df_cos = df_cos.reindex(columns = df_cos.columns.tolist() + ['nb_event','tstart', 'tstop', 'len_s','rate'])
+            df_cos.to_csv(file_cosmics_runs,index=False)
 
         df_ped = df.groupby('type').get_group('pedestal')
         df_ped.to_csv(file_pedestal_runs,index=False)
@@ -107,11 +114,14 @@ else:
     data = list_all_runs(list_folder, 0)
 
     df = pd.DataFrame(data, columns=col)
+    
+    df = df.sort_values(by='run')
 
-    df = df.sort(['run'])
+
     df.to_csv(file_all_runs,index=False)
     
     df_cos = df.groupby('type').get_group('cosmics')
+    df_cos = df_cos.reindex(columns = df_cos.columns.tolist() + ['nb_event','tstart', 'tstop', 'len_s','rate'])
     df_cos.to_csv(file_cosmics_runs,index=False)
     
     df_ped = df.groupby('type').get_group('pedestal')
