@@ -30,10 +30,10 @@ def coherent_filter(data, mask, group):
     """
 
     if( (cf.n_ChanPerCRP % group) > 0):
-        print " Coherent Noise Filter in groups of ", group, " is not a possible ! "
+        print(" Coherent Noise Filter in groups of ", group, " is not a possible ! ")
         return
 
-    nslices = cf.n_ChanPerCRP / group
+    nslices = int(cf.n_ChanPerCRP / group)
         
     data = np.reshape(data, (2, cf.n_View, group, nslices, cf.n_Sample))
     mask = np.reshape(mask, (2, cf.n_View, group, nslices, cf.n_Sample))
@@ -64,7 +64,7 @@ def FFTLowPass(data, lowpass, freqlines) :
 
     """it's 5001 (n/2+1) points from 0Hz to 1./(2*sampling) = 1.25MHz (nyquist freq)"""
     
-    n    = cf.n_Sample/2 + 1
+    n    = int(cf.n_Sample/2) + 1
     rate = 1./cf.n_Sampling #in MHz
     freq = np.linspace(0, rate/2., n)
 

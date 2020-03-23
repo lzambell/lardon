@@ -74,12 +74,13 @@ def read_evt_uint32(data):
 
 def check_and_build_event(header):
     if( not((header['k0'][0] & 0xFF)==evskey and (header['k1'][0] & 0xFF)==evskey)):
-        print " problem "         
+        print(" problem ")
         return throw_bad_event(), -1, -1
 
     good_evt = (header['evt_flag'][0] & 0x3F) == evdcard0
+    print(" evt_flag is ", header['evt_flag'][0])
     if(not good_evt):
-        print " problem, the event is marked as bad "         
+        print(" problem, the event is marked as bad -->")
         #return throw_bad_event(), -1, -1
 
     ev = cf.event(header['run_num'][0], header['evt_num'][0], header['time_s'][0], header['time_ns'][0], good_evt)
@@ -91,7 +92,7 @@ def check_and_merge_events(v0, v1):
     if(v0 == v1 and v0.evt_flag == True): #in case both are bad events
         return v0
     else:
-        print "Event headers are different ... "
+        print("Event headers are different ... ")
         """
         print " view 0 header : "
         dump_header(v0)
@@ -104,12 +105,12 @@ def throw_bad_event():
     return cf.event(-1, -1, -1, -1, False)
 
 def dump_header(header):
-    print " run_nb : ", header.run_nb
-    print " evt_nb_loc : ", header.evt_nb_loc
-    print " evt_nb_glob : ", header.evt_nb_glob
-    print " time_s :", header.time_s
-    print " time_ns :", header.time_ns
-    print " evt_flag :", header.evt_flag
+    print(" run_nb : ", header.run_nb)
+    print(" evt_nb_loc : ", header.evt_nb_loc)
+    print(" evt_nb_glob : ", header.evt_nb_glob)
+    print(" time_s :", header.time_s)
+    print(" time_ns :", header.time_ns)
+    print(" evt_flag :", header.evt_flag)
 
 
 

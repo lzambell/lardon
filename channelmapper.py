@@ -20,13 +20,13 @@ def DAQToCRP(daqch):
     n_ChPerCard = 64
     n_ChPerCrate = n_CardPerCrate * n_ChPerCard 
     n_ChPerConnector = 8
-    HalfCrate = n_Crates/2
-    QuartCrate = HalfCrate/2
-    HalfCard = n_CardPerCrate/2
-    HalfChPerCrate = n_ChPerCrate/2
+    HalfCrate = int(n_Crates/2)
+    QuartCrate = int(HalfCrate/2)
+    HalfCard = int(n_CardPerCrate/2)
+    HalfChPerCrate = int(n_ChPerCrate/2)
     
     crate = int(daqch/n_ChPerCrate)
-    card  = int(daqch - crate * n_ChPerCrate)/n_ChPerCard
+    card  = int((daqch - crate * n_ChPerCrate)/n_ChPerCard)
     chcard = int(daqch - crate * n_ChPerCrate - card * n_ChPerCard)
     conn   = int(chcard/n_ChPerConnector)
     view = 0 if crate < HalfCrate else 1
@@ -61,4 +61,4 @@ def DAQToCRP(daqch):
         vchan = abs(chcard-conn*n_ChPerConnector - 7) + conn*n_ChPerConnector + (crate%QuartCrate)*HalfChPerCrate + (card if card < HalfCard else card-HalfCard)*n_ChPerCard
     else:
         vchan = abs(chcard-conn*n_ChPerConnector - 7) + conn*n_ChPerConnector + abs((crate%QuartCrate)-2)*HalfChPerCrate + abs((card if card < HalfCard else card-HalfCard)-4)*n_ChPerCard
-    return crp, view, vchan
+    return int(crp), int(view), int(vchan)

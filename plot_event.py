@@ -45,7 +45,7 @@ adcmax = 70
 def plot_waveform(data, legtitle, colors, run_nb, evt_nb):
     nplot = len(data)
     if(nplot > 9):
-        print " ooops, I will only plot 9 waveforms"
+        print(" ooops, I will only plot 9 waveforms")
     fig = plt.figure(figsize=(12,9))
     ax = []
     for ip in range(nplot):

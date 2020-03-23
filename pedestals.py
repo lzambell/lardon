@@ -2,9 +2,9 @@ import config as cf
 import glob 
 
 def dump(i):
-    print " DAQCH ", i
-    print " CRP ", cf.reference[i].crp, " VIEW ", cf.reference[i].view, " CH ", cf.reference[i].vchan
-    print " ped = ", cf.reference[i].ped, " +/- ", cf.reference[i].rms
+    print(" DAQCH ", i)
+    print(" CRP ", cf.reference[i].crp, " VIEW ", cf.reference[i].view, " CH ", cf.reference[i].vchan)
+    print(" ped = ", cf.reference[i].ped, " +/- ", cf.reference[i].rms)
 
 
 
@@ -30,7 +30,7 @@ def get_closest_ped_run(run):
 
 def MapRefPedestal(run):
     reference_file = get_closest_ped_run(run)
-    print "Will use calibration run : ", reference_file
+    print("Will use calibration run : ", reference_file)
 
     with open(reference_file, "r") as pedcalib:
         for iline in pedcalib:
