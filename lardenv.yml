@@ -1,0 +1,14 @@
+name: lardenv
+channels:
+  - conda-forge
+
+dependencies:
+  - matplotlib
+  - numpy
+  - numba
+  - python > 3.6
+  - pandas
+  - scikit-learn
+  - scipy
+  - uproot
+  - numexpr
