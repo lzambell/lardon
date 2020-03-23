@@ -24,12 +24,33 @@ class event:
         
     def __eq__(self, other):
         return (self.run_nb, self.evt_nb_glob, self.evt_nb_loc, self.time_s, self.time_ns, self.evt_flag) == (other.run_nb, other.evt_nb_glob, other.evt_nb_loc, other.time_s, other.time_ns, other.evt_flag)
+
+class hits:
+    view    = -1
+    crp     = -1
+    channel = -1
+    start   = -1
+    stop    = -1
+    charge  = -1
+    max_t   = -1 
+    max_adc = -1
+    def __init__(self, view, crp, channel, start, stop, charge, max_t, max_adc):
+        self.view    = view
+        self.crp     = crp
+        self.channel = channel
+        self.start   = start
+        self.stop    = stop
+        self.charge  = charge
+        self.max_t   = max_t
+        self.max_adc = max_adc
         
 data_path = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 calib_path = "/afs/cern.ch/user/n/np02onlp/public/calib/pedestals/"
 
 map_ref = []
 evt_list = []
+hits_list = []
+
 n_CRP = 4
 n_View = 2
 n_Sample = 10000
