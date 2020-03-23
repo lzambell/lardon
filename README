@@ -1,0 +1,18 @@
+* * * * * * * * * * * * * * * * * * * * * * *
+* Liquid Argon Recontruction Done in PythON *
+* * * * * * * * * * * * * * * * * * * * * * *
+
+In order to run the software, one need miniconda installed :
+https://docs.conda.io/en/latest/miniconda.html#linux-installers
+
+and then install the librairies as stated in lardenv.yml : 
+conda env create -f lardenv.yml
+
+then :
+conda activate lardenv
+
+To run lardon on data : 
+python3 reader.py -run <run nb> -s <subfile name> -n <nb of events (optional)>
+
+To run lardon on MC : 
+... to be implemented ...
