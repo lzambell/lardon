@@ -229,10 +229,7 @@ for ievent in range(nevent):
     t7 = time.time()
     ncl = np.zeros((2,2))
     """ 1st search for most of the tracks"""
-    clus.dbme(ncl,20,15)
-    print(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
-    print(ncl)
-    print(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+    clus.dbscan(ncl,20,15)
 
     """2nd search for vertical tracks not yet clustered """
     clus.dbme(ncl,30,5)
