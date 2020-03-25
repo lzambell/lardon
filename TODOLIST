@@ -1,25 +1,19 @@
 * * * * *
 GENERAL
 * * * * *
-
-- Set running options 
-  Like -i [file] -n [nb of events] etc : DONE
-
-- Signal Polarity inversion for runs < 1256 -> DONE
-
-- Take closest reference pedestal DONE
-
-- Check event header of v0 and v1 are the same, and merge : DONE
-
-- Improve on reading the run & event header (-> through numpy and not struct.unpack) : DONE
-
+- broken channels -> change to crp,view,channel ?
+- Data container defined in a single place (like config) and could then used everywhere without loading it
 - Results storage ? ROOT ?
 
 
 * * * * *
 ANALYSIS
 * * * * *
+- microphonic noise : sliced poly fit ? FFT ? 
+- ROI/hit found : fit it ? With what ?
+- Track finder from cluster
+- Track stitching
+- 3D track merger
 
-- pedestal wave to be removed : sliced poly fit ? FFT ? 
-- ROI/hit found : fit it ?
-- Track finder
+- light and crt reader
+- qscan output reader
