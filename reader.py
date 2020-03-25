@@ -228,11 +228,12 @@ for ievent in range(nevent):
     
     t7 = time.time()
     ncl = np.zeros((2,2))
+    
     """ 1st search for most of the tracks"""
-    clus.dbscan(ncl,20,15)
+    clus.dbscan(ncl,20, 15, 0.1)
 
     """2nd search for vertical tracks not yet clustered """
-    clus.dbme(ncl,30,5)
+    clus.dbscan(ncl,30, 5, 0.1)
     print(ncl)
     print("time to cluster %.3f"%(time.time()-t7)) 
 

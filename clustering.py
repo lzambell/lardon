@@ -26,14 +26,14 @@ def rebin(data, chan_rebin, tdc_rebin):
     return data
 
 
-def dbscan(ncl, eps,min_samp):    
+def dbscan(ncl, eps, min_samp, y_squeez):    
     for icrp in range(2):
         for iview in range(2):
             """try to cluster un-clustered hits only"""
             hits = [x for x in cf.hits_list if x.crp==icrp and x.view==iview and x.cluster == -1]
 
             """ squeeze y axis instead of rebinning or defining a new metric """
-            data = [[x.channel,x.max_t*0.1] for x in hits]
+            data = [[x.channel,x.max_t*y_squeez] for x in hits]
             X = np.asarray(data)
             db = skc.DBSCAN(eps=eps,min_samples=min_samp).fit(X)
             labels = db.labels_
