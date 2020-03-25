@@ -44,7 +44,7 @@ def coherent_filter(data, mask, group):
     with np.errstate(divide='ignore', invalid='ignore'):
         mean = np.einsum('ijklm,ijklm->ijkm',data,mask)/mask.sum(axis=3)
 
-        """require at least 3 points to taken into account the mean"""
+        """require at least 3 points to take into account the mean"""
         mean[mask.sum(axis=3) < 3] = 0.
         
 

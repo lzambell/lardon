@@ -1,6 +1,9 @@
+import config as cf
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+import itertools as itr
+
     
 cdict1 = {
     'red': ((0.,    65./255.,  65./255.),
@@ -136,4 +139,93 @@ def plot_event_fft(data, run_nb, evt_nb):
     plt.close()
 
 
+    
+def plot_hits_ed(ncluster, run_nb, evt_nb, option=None):
+    fig = plt.figure(figsize=(12,9))
+    ax  = []
+    iplot=0
+
+    for iview in range(2):
+        for icrp in range(2):
+            iplot += 1
+            ax.append(fig.add_subplot(2,2,iplot))
+            
+            hit_pos = [x.channel for x in cf.hits_list if x.view == iview and x.crp == icrp]
+            hit_tdc = [x.max_t for x in cf.hits_list if x.view == iview and x.crp == icrp]
+            hit_cls = [x.cluster for x in cf.hits_list if x.view == iview and x.crp == icrp]
+
+            
+
+            colors = np.array(list(itr.islice(itr.cycle(['#377eb8', '#ff7f00', '#4daf4a',
+                                                 '#f781bf', '#a65628', '#984ea3',
+                                                 '#79f2ff', '#e41a1c', '#dede00']),
+                                          int(ncluster[icrp,iview] + 1))))
+            # add grey color for outliers (if any)
+            colors = np.append(colors, ["#c7c7c7"])
+
+            
+            ax[-1].scatter(hit_pos, hit_tdc, c=colors[hit_cls],s=2)
+            
+            ax[-1].set_xlim(0,959)
+            ax[-1].set_ylim(0,9999)
+            ax[-1].set_xlabel('View Channel')
+            ax[-1].set_ylabel('Time')
+            ax[-1].set_title('CRP '+str(icrp)+' - View '+str(iview))    
+            
+            print("CRP ", icrp, " View ", iview, " -> Nhits : ", len(hit_tdc))
+
+    plt.subplots_adjust(bottom=0.08, top=0.95, hspace=0.3)
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+    plt.savefig('ED/hit'+option+'_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
+    #plt.show()
+    plt.close()
+
+
+def plot_hits_var(run_nb,evt_nb,option=None):
+    fig = plt.figure(figsize=(12,9))
+    ax  = []
+    
+    
+    ax.append(fig.add_subplot(3,2,1))
+    charge = [x.charge for x in cf.hits_list]
+    ax[-1].hist(charge, 200, color='orange', histtype="stepfilled", edgecolor='r',log=True,range=(0., 5000.))
+    ax[-1].set_xlabel('Hit charge [ADC]')
+
+    ax.append(fig.add_subplot(3,2,2))
+    tmax = [x.max_t for x in cf.hits_list]
+    ax[-1].hist(tmax, 250, color='c',histtype='stepfilled',edgecolor='b',range=(0, 10000))
+    ax[-1].set_xlabel('Hit Time [tdc]')
+
+    ax.append(fig.add_subplot(3,2,3))
+    dt = [x.stop-x.start for x in cf.hits_list]
+    ax[-1].hist(dt, 200, color='b',histtype='stepfilled',edgecolor='k',log=True, range=(0., 200.))
+    ax[-1].set_xlabel('Hit Length [tdc]')
+
+    ax.append(fig.add_subplot(3,2,4))
+    amp = [x.max_adc for x in cf.hits_list]
+    ax[-1].hist(amp, 200, color='r',histtype='stepfilled',edgecolor='k',log=True, range=(0., 60.))
+    ax[-1].set_xlabel('Hit Amplitude [ADC]')
+
+    ax.append(fig.add_subplot(3,2,5))
+    dtstart = [x.max_t-x.start for x in cf.hits_list]
+    ax[-1].hist(dtstart, 50, color='y',histtype='stepfilled',edgecolor='k',log=True,range=(0., 50))
+    ax[-1].set_xlabel('Hit start-max [tdc]')
+
+    ax.append(fig.add_subplot(3,2,6))
+    dtstop = [x.stop-x.max_t for x in cf.hits_list]
+    ax[-1].hist(dtstop, 50, color='g',histtype='stepfilled',edgecolor='k',log=True,range=(0.,50.))
+    ax[-1].set_xlabel('Hit max-stop [tdc]')
+
+
+    plt.subplots_adjust(bottom=0.08, top=0.95, hspace=0.3)
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+    plt.savefig('ED/hit_properties_'+option+'_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
+    #plt.show()
+    plt.close()
     

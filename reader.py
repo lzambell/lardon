@@ -11,11 +11,11 @@ import channelmapper as cmap
 import read_event as read
 import plot_event as plot_ev
 import noise_filter as noise
-import deconv as dec
+#import deconv as dec
 
 """this part needs sklearn"""
-#import clustering as clus
-#import hitfinder as hf
+import clustering as clus
+import hitfinder as hf
 
 
 def need_help():
@@ -160,7 +160,7 @@ for ievent in range(nevent):
     """reset"""
     npalldata[:,:,:,:] = 0.
     mask[:,:,:,:] = True
-
+    cf.hits_list.clear()
 
     """reshape the array and subtract reference pedestal"""
     """for noise processing, the reshaping is useless 
@@ -220,20 +220,30 @@ for ievent in range(nevent):
     #only for plotting purpose
     #ROI *= npalldata     
     #ROI = clus.rebin(ROI, 2, 5)
-    """
-    t5 = time.time()
-    hf.HitSearch(ROI[0,0,300], 2.)
-    print(" time to Hit Search %.2f"%(time.time() - t5))
-    """
     
+    t6 = time.time()
+    hf.HitFinder(npalldata, ROI, noise.get_RMS(npalldata*mask))
+    print(" time to Hit Search %.3f"%(time.time() - t6))
+    print(" cross check ", len(cf.hits_list))
+    
+    t7 = time.time()
+    ncl = np.zeros((2,2))
+    """ 1st search for most of the tracks"""
+    clus.dbme(ncl,20,15)
+    print(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+    print(ncl)
+    print(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
 
-    #t6 = time.time()
-    #hf.HitFinder(npalldata, ROI, noise.get_RMS(npalldata*mask))
-    #print(" time to Hit Search %.3f"%(time.time() - t6))
-    #print(" cross check ", len(cf.hits_list))
-    #dec.deconvolute(npalldata[0,0])
-    plot_ev.plot_event_display(npalldata, evt.run_nb, evt.evt_nb_glob,"filt")
+    """2nd search for vertical tracks not yet clustered """
+    clus.dbme(ncl,30,5)
+    print(ncl)
+    print("time to cluster %.3f"%(time.time()-t7)) 
+
+    plot_ev.plot_hits_ed(ncl, evt.run_nb, evt.evt_nb_glob)    
+    plot_ev.plot_hits_var(evt.run_nb, evt.evt_nb_glob)    
+    #plot_ev.plot_event_display(npalldata, evt.run_nb, evt.evt_nb_glob,"filt")
     #plot_ev.plot_event_display(ROI, evt.run_nb, evt.evt_nb_glob, "ROI_rb")
+
     """
     ped_fin = noise.get_RMS(npalldata*mask)
     plot_ev.plot_pedestal([ped_ref, ped_ini, ped_fin], ['Ref.', 'Raw', 'Final'],['r','k','b'], evt.run_nb, evt.evt_nb_glob)
