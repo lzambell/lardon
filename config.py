@@ -34,7 +34,8 @@ class hits:
     charge  = -1
     max_t   = -1 
     max_adc = -1
-    def __init__(self, view, crp, channel, start, stop, charge, max_t, max_adc):
+    cluster = -1
+    def __init__(self, view, crp, channel, start, stop, charge, max_t, max_adc,cluster):
         self.view    = view
         self.crp     = crp
         self.channel = channel
@@ -43,7 +44,8 @@ class hits:
         self.charge  = charge
         self.max_t   = max_t
         self.max_adc = max_adc
-        
+        self.cluster = cluster
+
 data_path = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 calib_path = "/afs/cern.ch/user/n/np02onlp/public/calib/pedestals/"
 
