@@ -37,7 +37,7 @@ def HitSearch(data,rms,crp,view,channel,start):
                 hitFlag = True
                 singleHit = True
                 
-                h = cf.hits(crp,view,channel,it,0,0.,it,val,-1)
+                h = cf.hits(crp,view,channel,it,0,0.,it,val)
                 minSamp = -1
                 
             if(it > h.max_t and val < h.max_adc - thr2 and (minSamp==-1 or minimum >= val)):
@@ -50,7 +50,7 @@ def HitSearch(data,rms,crp,view,channel,start):
                 ll.append(h)
                 hitFlag = True
                 singleHit = False
-                h = cf.hits(crp,view,channel,minSamp,0,0,it,val,-1)
+                h = cf.hits(crp,view,channel,minSamp,0,0,it,val)
                 minSamp = -1
 
                 
