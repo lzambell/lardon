@@ -35,16 +35,29 @@ class hits:
     max_t   = -1 
     max_adc = -1
     cluster = -1
-    def __init__(self, view, crp, channel, start, stop, charge, max_t, max_adc,cluster):
-        self.view    = view
+    X       = -1
+    Z       = -1
+    def __init__(self, crp, view, channel, start, stop, charge, max_t, max_adc):
         self.crp     = crp
+        self.view    = view
         self.channel = channel
         self.start   = start
         self.stop    = stop
         self.charge  = charge
         self.max_t   = max_t
         self.max_adc = max_adc
-        self.cluster = cluster
+        self.cluster = -1 #cluster
+        self.X       = -1
+        self.Z       = -1
+
+    def GetDistances(self, v, pitch):
+        self.X = self.channel*pitch
+        
+        if(self.crp == 1 and self.view == 0):
+            self.X -= 300
+        self.Z = 300. - self.max_t*0.4*v*0.1
+
+        
 
 data_path = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 calib_path = "/afs/cern.ch/user/n/np02onlp/public/calib/pedestals/"
@@ -60,6 +73,9 @@ n_ChanPerCRP = 960
 n_ChanTot = 7680 # = n_CRP * n_View * n_ChanPerCRP
 n_ChanPerView = 3840 #=n_CRP * n_CharPerCRP
 n_Sampling = 0.4 #in mu-seconds
+ChanPitch = 0.3125 #cm
+LAr_Temperature = 87.5
+E_drift = 0.166 #in kV/cm
 
 
 # in DAQ Channel

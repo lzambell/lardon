@@ -16,3 +16,21 @@ python3 reader.py -run <run nb> -s <subfile name> -n <nb of events (optional)>
 
 To run lardon on MC : 
 ... to be implemented ...
+
+
+** CRP/VIEW CONVENTION **
+(y)
+ 1  
+ w  |-------------> View 0 (x) 
+ e  -------------------
+ i  |       |         |
+ V  |   1   |    0    |
+ ^  |       |         |
+ |  --------•----------
+ |  |       |         |
+ |  |   2   |    3    |
+ |  |       |         |
+ -  -------------------
+ 
+ origin in the center (at •)
+ electrons drift along z axis
