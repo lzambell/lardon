@@ -1,4 +1,7 @@
 import config as cf
+import data_containers as dc
+import lar_param as lar
+
 import numpy as np
 #import numba as nb
 
@@ -37,7 +40,7 @@ def HitSearch(data,rms,crp,view,channel,start):
                 hitFlag = True
                 singleHit = True
                 
-                h = cf.hits(crp,view,channel,it,0,0.,it,val)
+                h = dc.hits(crp,view,channel,it,0,0.,it,val)
                 minSamp = -1
                 
             if(it > h.max_t and val < h.max_adc - thr2 and (minSamp==-1 or minimum >= val)):
@@ -50,7 +53,7 @@ def HitSearch(data,rms,crp,view,channel,start):
                 ll.append(h)
                 hitFlag = True
                 singleHit = False
-                h = cf.hits(crp,view,channel,minSamp,0,0,it,val)
+                h = dc.hits(crp,view,channel,minSamp,0,0,it,val)
                 minSamp = -1
 
                 
@@ -73,21 +76,18 @@ def HitSearch(data,rms,crp,view,channel,start):
         i+=1
     return ll
 
-def HitFinder(data, ROI, rms):
-    """ 
-    input is :
-    all filtered data points, 
-    ROI where true means potential signal,
-    pedestal rms of each channels 
-    """
+
+def HitFinder(rms): 
     
     dt_min = 10
     pad_left = 5
     pad_right = 10
 
+    """ get boolean roi based on mask and alive channels """
+    ROI = np.array(~dc.mask & dc.alive_chan, dtype=bool)
 
     """ adds 0 (False) and the start and end of each waveform """
-    falses = np.zeros((2,2,960,1),dtype=int)
+    falses = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP,1),dtype=int)
     ROIs = np.r_['-1',falses,np.asarray(ROI,dtype=int),falses]
     d = np.diff(ROIs)
 
@@ -132,11 +132,17 @@ def HitFinder(data, ROI, rms):
                     break
                       
             
-            adc = data[crp,view,channel,tdc_start:tdc_stop+1]                
+            adc = dc.data[crp,view,channel,tdc_start:tdc_stop+1]                
             hh = HitSearch(adc, rms[crp,view,channel], crp, view, channel, tdc_start)
             
-            cf.hits_list.extend(hh)
+            dc.hits_list.extend(hh)
 
-    print("nb of hits found ",len(cf.hits_list))
+    print("nb of hits found ",len(dc.hits_list))
 
+
+    v = lar.driftVelocity()
+    print("Drift Velocity : v = %.3f mm/mus"%v)
+
+    """ transforms hit channel and tdc to positions """
+    [x.GetDistances(v, cf.ChanPitch) for x in dc.hits_list]
 
