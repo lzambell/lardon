@@ -3,20 +3,16 @@ import os
 import numpy as np
 import time 
 
-
-import matplotlib.pyplot as plt
 import config as cf
 import pedestals as ped
 import channelmapper as cmap
 import read_event as read
 import plot_event as plot_ev
 import noise_filter as noise
-#import deconv as dec
-
-"""this part needs sklearn"""
-import clustering as clus
 import hitfinder as hf
-
+import clustering as clus
+import track_2d as trk
+import lar_param as lar
 
 def need_help():
     print("Usage: python reader.py ")
@@ -40,6 +36,7 @@ else:
 lowpasscut     = 0.1 #MHz    
 freqlines      = [0.00125, 0.0234] #in MHz
 signal_thresh  = 4.
+signal_thresh_2  = 2.5
 adc_thresh     = 6.
 coherent_group = 64
 
@@ -161,7 +158,7 @@ for ievent in range(nevent):
     npalldata[:,:,:,:] = 0.
     mask[:,:,:,:] = True
     cf.hits_list.clear()
-
+    cf.tracks2D_list.clear()
     """reshape the array and subtract reference pedestal"""
     """for noise processing, the reshaping is useless 
     but makes the code readable - change in the future ? """
@@ -180,6 +177,7 @@ for ievent in range(nevent):
 
         if(run_nb <= cf.run_inv_signal):
             npalldata *= -1.    
+
         
     print(" done getting event ", ievent, " ! %.2f"%(time.time() - tevtdata))
 
@@ -216,31 +214,47 @@ for ievent in range(nevent):
 
     """invert the mask, so now True is signal (and not broken channels)"""    
     ROI = np.array(~mask & alive_chan, dtype=bool)
-    print("Nb of points ", np.sum(ROI))
-    #only for plotting purpose
-    #ROI *= npalldata     
-    #ROI = clus.rebin(ROI, 2, 5)
+
     
     t6 = time.time()
     hf.HitFinder(npalldata, ROI, noise.get_RMS(npalldata*mask))
+    v = lar.driftVelocity()
+    print("Drift Velocity : v = %.3f"%v)
+
+
+    """ transforms hit channel and tdc to positions """
+    [x.GetDistances(v, cf.ChanPitch) for x in cf.hits_list]
+
+
     print(" time to Hit Search %.3f"%(time.time() - t6))
-    print(" cross check ", len(cf.hits_list))
+
     
     t7 = time.time()
-    ncl = np.zeros((2,2))
+    ncl = np.zeros((2,2),dtype=int)
     
     """ 1st search for most of the tracks"""
-    clus.dbscan(ncl,20, 15, 0.1)
+    """parameters : eps, min pts, y axis squeeze"""
+    clus.dbscan(ncl, 20, 15, 0.1)
 
     """2nd search for vertical tracks not yet clustered """
-    clus.dbscan(ncl,30, 5, 0.1)
-    print(ncl)
+    clus.dbscan(ncl, 30, 5, 0.1)
+
     print("time to cluster %.3f"%(time.time()-t7)) 
 
-    plot_ev.plot_hits_ed(ncl, evt.run_nb, evt.evt_nb_glob)    
-    plot_ev.plot_hits_var(evt.run_nb, evt.evt_nb_glob)    
+    #plot_ev.plot_hits_ed(ncl, evt.run_nb, evt.evt_nb_glob)    
+    #plot_ev.plot_hits_var(evt.run_nb, evt.evt_nb_glob)    
     #plot_ev.plot_event_display(npalldata, evt.run_nb, evt.evt_nb_glob,"filt")
-    #plot_ev.plot_event_display(ROI, evt.run_nb, evt.evt_nb_glob, "ROI_rb")
+    #plot_ev.plot_hits_view_ed(evt.run_nb, evt.evt_nb_glob)
+
+    t8 = time.time()
+    
+    """parameters : rcut, chi2cut, y error, slope error, pbeta"""
+    trk.FindTracks(ncl, 6., 12., 0.3125, 1., 3.)
+
+
+    print("time to find tracks %.3f"%(time.time()-t8))
+    plot_ev.plot_hits_view_tracks2D(evt.run_nb, evt.evt_nb_glob)
+    plot_ev.plot_track2D_var(evt.run_nb, evt.evt_nb_glob)
 
     """
     ped_fin = noise.get_RMS(npalldata*mask)
