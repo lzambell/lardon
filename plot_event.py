@@ -2,7 +2,10 @@ import config as cf
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.gridspec as gridspec
+from matplotlib import collections  as mc
 import itertools as itr
+import math
 
     
 cdict1 = {
@@ -42,7 +45,7 @@ cdict1 = {
 newcmp = LinearSegmentedColormap('MyOwn', cdict1)
 
 adcmin = -10
-adcmax = 70
+adcmax = 35
 
 
 def plot_waveform(data, legtitle, colors, run_nb, evt_nb):
@@ -141,12 +144,13 @@ def plot_event_fft(data, run_nb, evt_nb):
 
     
 def plot_hits_ed(ncluster, run_nb, evt_nb, option=None):
+
     fig = plt.figure(figsize=(12,9))
     ax  = []
     iplot=0
 
-    for iview in range(2):
-        for icrp in range(2):
+    for icrp in range(2):
+        for iview in range(2):
             iplot += 1
             ax.append(fig.add_subplot(2,2,iplot))
             
@@ -185,6 +189,7 @@ def plot_hits_ed(ncluster, run_nb, evt_nb, option=None):
 
 
 def plot_hits_var(run_nb,evt_nb,option=None):
+
     fig = plt.figure(figsize=(12,9))
     ax  = []
     
@@ -229,3 +234,153 @@ def plot_hits_var(run_nb,evt_nb,option=None):
     #plt.show()
     plt.close()
     
+
+
+
+def plot_hits_view_ed(run_nb, evt_nb, option=None):
+
+    fig = plt.figure(figsize=(12,6))
+    gs = gridspec.GridSpec(nrows=2, ncols=3, height_ratios=[1,10])
+
+    ax_col = fig.add_subplot(gs[0,:])
+    ax_v0 = fig.add_subplot(gs[1, 0:2])
+    ax_v1 = fig.add_subplot(gs[1, 2], sharey=ax_v0)
+
+    max_adc_range=50
+    hit_x_v0 = [x.X for x in cf.hits_list if x.view == 0]
+    hit_z_v0 = [x.Z for x in cf.hits_list if x.view == 0]
+    hit_q_v0 = [x.max_adc for x in cf.hits_list if x.view == 0]
+
+
+    hit_x_v1 = [x.X for x in cf.hits_list if x.view == 1]
+    hit_z_v1 = [x.Z for x in cf.hits_list if x.view == 1]
+    hit_q_v1 = [x.max_adc for x in cf.hits_list if x.view == 1]
+
+    sc0 = ax_v0.scatter(hit_x_v0, hit_z_v0, c=hit_q_v0, cmap=newcmp, s=2, vmin=0, vmax=max_adc_range)
+
+    ax_v0.set_title('View 0')
+    ax_v0.set_ylabel('Z [cm]')
+    ax_v0.set_xlabel('Y [cm]')
+    ax_v0.set_xlim([-300., 300])
+    ax_v0.set_ylim([-30., 300])
+
+    sc1 = ax_v1.scatter(hit_x_v1, hit_z_v1, c=hit_q_v1, cmap=newcmp, s=2,vmin=0,vmax=max_adc_range)
+    ax_v1.set_title('View 1')
+    #ax_v1.set_ylabel('Z [cm]')
+    ax_v1.set_xlabel('X [cm]')
+    ax_v1.set_xlim([0,300])
+    ax_v1.set_ylim([-30., 300])
+    ax_col.set_title('Hit Max ADC')
+    cb = fig.colorbar(sc1, cax=ax_col, orientation='horizontal')
+    cb.ax.xaxis.set_ticks_position('top')
+    cb.ax.xaxis.set_label_position('top')
+    
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+    plt.savefig('ED/hit_view_ed_corr'+option+'_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
+    #plt.show()
+    plt.close()
+
+def plot_hits_view_tracks2D(run_nb, evt_nb, option=None):
+
+    fig = plt.figure(figsize=(12,6))
+    gs = gridspec.GridSpec(nrows=1, ncols=3)#, height_ratios=[1,10])
+
+    #ax_col = fig.add_subplot(gs[0,:])
+    ax_v0 = fig.add_subplot(gs[0, 0:2])
+    ax_v1 = fig.add_subplot(gs[0, 2], sharey=ax_v0)
+
+    #max_adc_range=50
+    hit_x_v0 = [x.X for x in cf.hits_list if x.view == 0]
+    hit_z_v0 = [x.Z for x in cf.hits_list if x.view == 0]
+
+    hit_x_v0_noise = [x.X for x in cf.hits_list if x.view == 0 and x.cluster==-1]
+    hit_z_v0_noise = [x.Z for x in cf.hits_list if x.view == 0 and x.cluster==-1]
+
+    tracks_hits_x_v0 = [[p[0] for p in t.path] for t in cf.tracks2D_list if t.view==0]
+    tracks_hits_z_v0 = [[p[1] for p in t.path] for t in cf.tracks2D_list if t.view==0]
+
+    hit_x_v1 = [x.X for x in cf.hits_list if x.view == 1]
+    hit_z_v1 = [x.Z for x in cf.hits_list if x.view == 1]
+
+    hit_x_v1_noise = [x.X for x in cf.hits_list if x.view == 1 and x.cluster==-1]
+    hit_z_v1_noise = [x.Z for x in cf.hits_list if x.view == 1 and x.cluster==-1]
+
+    tracks_hits_x_v1 = [[p[0] for p in t.path] for t in cf.tracks2D_list if t.view==1]
+    tracks_hits_z_v1 = [[p[1] for p in t.path] for t in cf.tracks2D_list if t.view==1]
+
+
+
+    ax_v0.scatter(hit_x_v0, hit_z_v0, c="#ffb77d", s=2)#ffb77d
+    ax_v0.scatter(hit_x_v0_noise, hit_z_v0_noise, c="#d8cfd6", s=2)
+    
+
+    for tx,tz in zip(tracks_hits_x_v0, tracks_hits_z_v0):
+        ax_v0.scatter(tx, tz, c="#28568f",s=2) ##6d40cf
+        ax_v0.plot(tx,tz, c="#de425b",linewidth=1)#f65789
+
+    ax_v0.set_title('View 0')
+    ax_v0.set_ylabel('Z [cm]')
+    ax_v0.set_xlabel('Y [cm]')
+    ax_v0.set_xlim([-300., 300])
+    ax_v0.set_ylim([-30., 300])
+
+    ax_v1.scatter(hit_x_v1, hit_z_v1, c="#ffb77d", s=2)#ffb77d
+    ax_v1.scatter(hit_x_v1_noise, hit_z_v1_noise, c="#d8cfd6", s=2)
+
+    for tx,tz in zip(tracks_hits_x_v1, tracks_hits_z_v1):
+        ax_v1.scatter(tx, tz, c="#28568f",s=2)#6d40cf
+        ax_v1.plot(tx,tz, c="#de425b",linewidth=1)#f65789
+
+
+    ax_v1.set_title('View 1')
+    ax_v1.set_xlabel('X [cm]')
+    ax_v1.set_xlim([0,300])
+    ax_v1.set_ylim([-30., 300])
+    
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+    plt.savefig('ED/track_hit_view_ed'+option+'_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
+    #plt.show()
+    plt.close()
+
+
+def plot_track2D_var(run_nb, evt_nb, option=None):
+    
+    fig = plt.figure(figsize=(12,6))
+    gs = gridspec.GridSpec(nrows=3, ncols=2)
+
+    ax_nhits = fig.add_subplot(gs[0, 0])
+    ax_length = fig.add_subplot(gs[0, 1])
+    ax_angles = fig.add_subplot(gs[1:, :])
+
+    nb_hits_per_track = [x.nHits for x in cf.tracks2D_list]
+    ax_nhits.hist(nb_hits_per_track, bins=100, range=(0,100), histtype="stepfilled", color="#9bad51", edgecolor='#68723d')
+    ax_nhits.set_xlabel('Nb of Hits attached to tracks')
+
+    track_length = [math.sqrt(pow(x.path[0][0]-x.path[-1][0], 2) + pow(x.path[0][1]-x.path[-1][1], 2)) for x in cf.tracks2D_list]
+    ax_length.hist(track_length, bins = 100, range=(0, 60.), histtype="stepfilled", color="#e16543", edgecolor="#4a0d0d") 
+    ax_length.set_xlabel('Track 2D length [cm]')
+
+    angle_start = [x.ini_slope for x in cf.tracks2D_list]
+    angle_stop  = [x.end_slope for x in cf.tracks2D_list]
+    ax_angles.scatter(angle_start, angle_stop, c="#8aa7cf", s=1)
+    ax_angles.set_xlabel('initial slope')
+    ax_angles.set_ylabel('final slope')
+
+    plt.subplots_adjust(bottom=0.08, top=0.95, hspace=0.3)
+
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+    plt.savefig('ED/track2D_properties'+option+'_run_'+str(run_nb)+'_evt_'+str(evt_nb)+'.png')
+    #plt.show()
+    plt.close()
+
+
+

@@ -50,6 +50,11 @@ class hits:
         self.X       = -1
         self.Z       = -1
 
+    def __lt__(self,other):
+        #"""sort hits by increasing channel and increasing Z"""
+        #return (self.X < other.X) or (self.X== other.X and self.Z < other.Z)
+        """ sort hits by decreasing Z and increasing channel """
+        return (self.Z > other.Z) or (self.Z == self.Z and self.X < other.X)
     def GetDistances(self, v, pitch):
         self.X = self.channel*pitch
         
@@ -57,14 +62,59 @@ class hits:
             self.X -= 300
         self.Z = 300. - self.max_t*0.4*v*0.1
 
-        
+class trk2D:
+    ini_crp = -1
+    end_crp = -1
+    view    = -1
+    ini_slope   = -1
+    ini_slope_err = -1
+    end_slope   = -1
+    end_slope_err = -1
+    nHits   = -1
+    path    = []
+    dQ      = []
+    chi2    = -1
+    def __init__(self, ini_crp, view, ini_slope, ini_slope_err, x0, y0, q0, chi2):
+        self.ini_crp = ini_crp
+        self.end_crp = ini_crp
+        self.view    = view
+        self.ini_slope   = ini_slope
+        self.ini_slope_err   = ini_slope_err
+        self.end_slope   = ini_slope
+        self.end_slope_err   = ini_slope_err
+        self.nHits   = 1
+        self.path    = [(x0,y0)]
+        self.dQ      = [q0]
+        self.chi2    = chi2
 
+    def add_hit(self, slope, slope_err, x, y, q, chi2):
+        self.end_slope = slope
+        self.end_slope_err = slope_err
+        self.nHits += 1
+        self.path.append([x,y])
+        self.dQ.append(q)
+        self.chi2 = chi2
+
+    def reset(self):
+        self.ini_crp = -1
+        self.end_crp = -1
+        self.view    = -1
+        self.ini_slope   = -1
+        self.ini_slope_err = -1
+        self.end_slope   = -1
+        self.end_slope_err = -1
+        self.nHits   = 0
+        self.path    = []
+        self.dQ      = []
+        self.chi2    = -1
+        
 data_path = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 calib_path = "/afs/cern.ch/user/n/np02onlp/public/calib/pedestals/"
 
 map_ref = []
 evt_list = []
 hits_list = []
+tracks2D_list = []
 
 n_CRP = 4
 n_View = 2
