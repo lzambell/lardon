@@ -1,4 +1,5 @@
 import config as cf
+import data_containers as dc
 
 import numpy as np
 import sklearn.cluster as skc
@@ -21,16 +22,18 @@ def rebin(data, chan_rebin, tdc_rebin):
     new_n_chan = int(chan/chan_rebin)
     new_n_tdc = int(tdc/tdc_rebin)
     
-    data = data.reshape(2, cf.n_View, new_n_chan, chan_rebin, new_n_tdc, tdc_rebin)
+    data = data.reshape(cf.n_CRPUsed, cf.n_View, new_n_chan, chan_rebin, new_n_tdc, tdc_rebin)
     data = data.sum(axis=5).sum(axis=3)
     return data
 
 
-def dbscan(ncl, eps, min_samp, y_squeez):    
-    for icrp in range(2):
-        for iview in range(2):
+def dbscan(eps, min_samp, y_squeez):    
+
+    for icrp in range(cf.n_CRPUsed):
+        for iview in range(cf.n_View):
+
             """try to cluster un-clustered hits only"""
-            hits = [x for x in cf.hits_list if x.crp==icrp and x.view==iview and x.cluster == -1]
+            hits = [x for x in dc.hits_list if x.crp==icrp and x.view==iview and x.cluster == -1]
 
             """ squeeze y axis instead of rebinning or defining a new metric """
             data = [[x.channel,x.max_t*y_squeez] for x in hits]
@@ -39,15 +42,14 @@ def dbscan(ncl, eps, min_samp, y_squeez):
             labels = db.labels_
 
             for h,cluster in zip(hits, labels):
-                h.cluster = cluster if cluster==-1 else cluster + ncl[icrp,iview]
+                h.cluster = cluster if cluster==-1 else cluster + dc.ncluster[icrp,iview]
 
             n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-            #n_noise = list(labels).count(-1)
-            #unique_labels = set(labels)
-            ncl[icrp,iview] += n_clusters #len(unique_labels)-1
+            dc.ncluster[icrp,iview] += n_clusters
 
+            #n_noise = list(labels).count(-1)
             #print("CRP ", icrp, " View ", iview)
             #print("number of clusters : %d" % n_clusters)
             #print('Number of noise points: %d' % n_noise)
-    return ncl
+    #return ncl
     

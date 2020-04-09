@@ -1,29 +1,35 @@
 import config as cf
+import data_containers as dc
+
+n_Crates = 12
+n_CardPerCrate = 10
+n_ChPerCard = 64
+n_ChPerCrate = n_CardPerCrate * n_ChPerCard 
+n_ChPerConnector = 8
+HalfCrate = int(n_Crates/2)
+QuartCrate = int(HalfCrate/2)
+HalfCard = int(n_CardPerCrate/2)
+HalfChPerCrate = int(n_ChPerCrate/2)
+
 
 def check():
-    if(len(cf.map_ref) > 0):
-        del cf.map_ref[:]
+    if(len(dc.map_ref) > 0):
+        del dc.map_ref[:]
 
 def ChannelMapper():    
     check()
     for idaq in range(cf.n_ChanTot):
         crp, view, vchan = DAQToCRP(idaq)
+        dc.map_ref.append(dc.pdmap(crp,view,vchan))
+        """
         ev = cf.pdmap()
         ev.view = view
         ev.crp = crp
         ev.vchan = vchan
         cf.map_ref.append(ev)
+        """
 
 def DAQToCRP(daqch):
-    n_Crates = 12
-    n_CardPerCrate = 10
-    n_ChPerCard = 64
-    n_ChPerCrate = n_CardPerCrate * n_ChPerCard 
-    n_ChPerConnector = 8
-    HalfCrate = int(n_Crates/2)
-    QuartCrate = int(HalfCrate/2)
-    HalfCard = int(n_CardPerCrate/2)
-    HalfChPerCrate = int(n_ChPerCrate/2)
     
     crate = int(daqch/n_ChPerCrate)
     card  = int((daqch - crate * n_ChPerCrate)/n_ChPerCard)

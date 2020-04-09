@@ -1,4 +1,5 @@
 import config as cf
+import data_containers as dc
 import math
 import numpy as np
 import sklearn.neighbors as skn
@@ -7,12 +8,11 @@ import scipy.spatial as spatial
 
 import pierre_filter as pf
 
-def dump_track(idx, minHits):
-    t = cf.tracks2D_list[idx]
-    """
-    if(t.nHits < minHits):
-        return
-    """
+
+
+def dump_track(idx):
+    t = dc.tracks2D_list[idx]
+
     print("Track ", idx)
     print("CRP : ", t.ini_crp, " to ", t.end_crp)
     print("VIEW : ", t.view)
@@ -26,7 +26,7 @@ def dump_track(idx, minHits):
     print(" ")
     
 
-def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
+def FindTracks(rcut, chicut, y_err, slope_err, pbeta):
     """error on y axis, error on slope, pbeta hyp"""
     #filt = pf.PFilter(0.15, 0.05, 3.)
 
@@ -34,38 +34,20 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
     filt = pf.PFilter(y_err, slope_err, pbeta)
 
 
-    for icrp in range(2):
-        for iview in range(2):
-            for icl in range(ncl[icrp,iview]):
-                #if(icl >= 1):
-                    #return
-                hits = [x for x in cf.hits_list if x.crp==icrp and x.view==iview and x.cluster==icl]
+    for icrp in range(cf.n_CRPUsed):
+        for iview in range(cf.n_View):
+            for icl in range(dc.ncluster[icrp,iview]):
+
+                hits = [x for x in dc.hits_list if x.crp==icrp and x.view==iview and x.cluster==icl]
                 
-                """
-                print("before sorting")
-                for ii in range(len(hits)):
-                    print(ii, " ", hits[ii].Z, " ", hits[ii].X)
-                """
-                #"""sort by increasing channel and increasing time"""
                 """sort by decreasing Z and increasing channel """
                 hits.sort()
-                """
-                print("\nafter sorting")
-                for ii in range(len(hits)):
-                    print(ii, " ", hits[ii].Z, " ", hits[ii].X)
-                """
 
                 nHits = len(hits)
 
                 visited = np.zeros((nHits),dtype=bool)
-                #X = np.asarray([[x.X,x.Z] for x in hits])
                 X = np.asarray([[x.X,x.Z] for x in hits])
 
-                
-                #print("*-*-*-*-*-*-")
-                #print("*-*-*-*-*-*-")
-                #print("CRP ", icrp, " VIEW ", iview, " CLUSTER ",icl, " Npts ", nHits, " current nb of tracks ", len(cf.tracks2D_list))
-                #print(" seeder : ",X[0])
                 
 
                 """build the NN Tree"""
@@ -79,9 +61,7 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
                     idx = np.argmax(visited==0)
                     visited[idx] = True
                     
-                    #print(" while loop at idx : ", idx, " n visited ", np.sum(visited))
                     
-
                     """gets NN indices within rcut, 
                     first nearest point is itself"""
                     nn = tree.query_ball_point(X[idx], rcut,return_sorted=True)[1:]
@@ -93,13 +73,7 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
                     
                     """give up if still nothing"""
                     if(len(nn)==0):
-                        #print("still nothing ! ")
-                        if(seeded is True):
-                            #if(track.nHits == 2):
-                                #visited[
-                            #cf.tracks2D_list.append(track)
-                            #track.reset()
-                            seeded = False
+                        seeded = False
                         continue
 
                     #print(len(nn), " NN : ", nn)
@@ -109,19 +83,16 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
                         nn_idx = nn[np.argmax(visited[nn]==0)]
                         #print("seeding with idx ", nn_idx)
                         
-                        #x0, x1 = hits[idx].X, hits[nn_idx].X
+
                         x0, x1 = hits[idx].Z, hits[nn_idx].Z
-                        #y0, y1 = hits[idx].Z, hits[nn_idx].Z
                         y0, y1 = hits[idx].X, hits[nn_idx].X
                         
                         if(x1 == x0):
-                            #print("vertical track ... not handled atm")
                             seeded = False
                             continue
                         #print(" x0,y0 : ", x0, ", ", y0)
                         #print(" x1,y1 : ", x1, ", ", y1)
 
-                        #!!!!!!!!!!!!!!!!!!!!!!!!!
                         slope = (y1-y0)/(x1-x0)
                         intercept = y1 - slope * x1
 
@@ -129,13 +100,10 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
                         #print(" ystart : ", ystart, " x ", x0, " slope ", slope, " intercept ", intercept)
                         
                         filt.initiate(ystart, slope)
-                        #track = cf.trk2D(icrp,iview,slope, 0.05, x0, y0, hits[idx].charge, filt.getChi2())
-                        track = cf.trk2D(icrp,iview,slope, slope_err, y0, x0, hits[idx].charge, filt.getChi2())
+                        track = dc.trk2D(icrp,iview,slope, slope_err, y0, x0, hits[idx].charge, filt.getChi2())
                         track.add_hit(slope, filt.getSlopeErr(), y1, x1, hits[nn_idx].charge, filt.getChi2())
                         seeded = True
                         visited[nn_idx] = True
-                        #print("seeding finished! idx at ", idx, " nn_idx at ", nn_idx)
-                        #continue
 
                     """update the track from nearby hits"""                   
                     finished = False
@@ -152,11 +120,7 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
                             finished = True
                             seeded = False
                             if(track.nHits > 3):
-                                #visited[idx] = False
-                                #track.reset()
-                            #else:
-                                cf.tracks2D_list.append(track)
-                                #track.reset()
+                                dc.tracks2D_list.append(track)
                             continue
 
                         if(np.sum(visited[nn]) == len(nn)):
@@ -167,7 +131,7 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
                                 #visited[idx] = False
                                 #track.reset()
                             #else:
-                                cf.tracks2D_list.append(track)
+                                dc.tracks2D_list.append(track)
                                 #track.reset()
                             continue
                             
@@ -200,6 +164,7 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
                                 if(chi2m < best_chi2):
                                     best_idx = nn_idx
                                     best_chi2 = chi2m
+
                         if(best_idx >= 0):
                             nn_idx = best_idx
                             #x1, y1 = hits[nn_idx].X, hits[nn_idx].Z
@@ -210,26 +175,21 @@ def FindTracks(ncl, rcut, chicut, y_err, slope_err, pbeta):
                             track.add_hit(filt.getSlope(), filt.getSlopeErr(), y1, x1, hits[nn_idx].charge, tot_chi2)
                             visited[nn_idx]=True
                             updated = True
-                            #print(" OK NEXT! :: tot Chi2 : ", np.sum(visited),"/",nHits)
-                            #break
                             
 
                         if(updated is False or np.sum(visited) == nHits):
-                            #print(" ... all hits were visited !")
                             finished = True
                             seeded = False
                             if(track.nHits > 3):
-                                #visited[idx] = False
-                                #track.reset()
-                            #else:
-                                cf.tracks2D_list.append(track)
-                                #track.reset()
+                                dc.tracks2D_list.append(track)
                             continue
 
 
 
-    print("nb tracks ", len(cf.tracks2D_list))
-    for t in range(len(cf.tracks2D_list)):
-        dump_track(t, 10)
+    print("nb tracks ", len(dc.tracks2D_list))
+    """
+    for t in range(len(dc.tracks2D_list)):
+        dump_track(t)
+    """
     return
     

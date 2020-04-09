@@ -1,18 +1,19 @@
 import config as cf
+import data_containers as dc
 import glob 
 
+"""
 def dump(i):
     print(" DAQCH ", i)
     print(" CRP ", cf.reference[i].crp, " VIEW ", cf.reference[i].view, " CH ", cf.reference[i].vchan)
     print(" ped = ", cf.reference[i].ped, " +/- ", cf.reference[i].rms)
-
-
+"""
 
 def GetPed(i):
-    return cf.map_ref[i].ped
+    return dc.map_ref[i].ped
 
 def GetPedRMS(i):
-    return cf.map_ref[i].rms
+    return dc.map_ref[i].rms
 
 def get_closest_ped_run(run):
     calib_runs = glob.glob(cf.calib_path+"noise*.dat")
@@ -36,7 +37,11 @@ def MapRefPedestal(run):
         for iline in pedcalib:
             li = iline.split()
             daqch = int(li[0])
+            ped = float(li[7])
+            rms = float(li[9])
+            dc.map_ref[daqch].set_pedestal(ped, rms)
+            """
             cf.map_ref[daqch].ped = float(li[7])
             cf.map_ref[daqch].rms = float(li[9])
-            
+            """
 
