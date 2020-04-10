@@ -12,3 +12,5 @@ dependencies:
   - scipy
   - uproot
   - numexpr
+  - pytables
+  - vitables
