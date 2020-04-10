@@ -2,6 +2,8 @@ import sys
 import os
 import numpy as np
 import time 
+#from tables import *
+import tables as tables
 
 import config as cf
 import data_containers as dc
@@ -14,6 +16,7 @@ import noise_filter as noise
 import hitfinder as hf
 import clustering as clus
 import track_2d as trk
+import store as store
 
 
 def need_help():
@@ -59,13 +62,17 @@ for index, arg in enumerate(sys.argv):
 
 tstart = time.time()
 
-name = cf.data_path + run_n + "/" + run_n + "_" + evt_file + "." + evt_type
+name_in = cf.data_path + run_n + "/" + run_n + "_" + evt_file + "." + evt_type
+name_out = cf.store_path + "/" + run_n + "_" + evt_file + ".h5"
 
-if(os.path.exists(name) is False):
-    print(" ERROR ! file ", name, " do not exists ! ")
+if(os.path.exists(name_in) is False):
+    print(" ERROR ! file ", name_in, " do not exists ! ")
     sys.exit()
 
-data = open(name, "rb")
+data = open(name_in, "rb")
+output = tables.open_file(name_out, mode="w", title="Reconstruction Output")
+
+
 
 """ Reading Run Header """
 run_nb, nb_evt = np.fromfile(data, dtype='<u4', count=2)
@@ -200,11 +207,15 @@ for ievent in range(nevent):
     #plot_ev.plot_tracks2D()
     #plot_ev.plot_track2D_var()
 
+    store.store_tracks(output, ievent)
+
+
     """
     ped_fin = noise.get_RMS(npalldata*mask)
     plot_ev.plot_pedestal([ped_ref, ped_ini, ped_fin], ['Ref.', 'Raw', 'Final'],['r','k','b'])
     """
 
 data.close()
+output.close()
 tottime = time.time() - tstart
 print(" TOTAL RUNNING TIME %.2f s == %.2f evt/s"% (tottime, tottime/nevent))

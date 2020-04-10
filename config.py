@@ -1,5 +1,7 @@
 data_path = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 calib_path = "/afs/cern.ch/user/n/np02onlp/public/calib/pedestals/"
+store_path = "." #/eos/user/l/lzambell/analysis/lardon/reco"
+
 
 n_CRP = 4
 n_CRPUsed = 2
