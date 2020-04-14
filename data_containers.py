@@ -149,7 +149,7 @@ class trk2D:
         self.end_slope = slope
         self.end_slope_err = slope_err
         self.nHits += 1
-        self.path.append([x,y])
+        self.path.append((x,y))
         self.dQ.append(q)
         self.chi2 = chi2
         
