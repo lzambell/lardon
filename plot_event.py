@@ -10,6 +10,7 @@ from matplotlib import collections  as mc
 import itertools as itr
 import math
 
+from mpl_toolkits.mplot3d import Axes3D 
     
 light_blue_red_dict = {
     'red': ((0.,    65./255.,  65./255.),
@@ -435,7 +436,7 @@ def plot_tracks2D(option=None):
 
 
     plt.savefig('ED/track2D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
-    plt.show()
+    #plt.show()
     plt.close()
 
 
@@ -480,3 +481,42 @@ def plot_track2D_var(option=None):
 
 
 
+def plot_tracks3D(option=None):
+
+    fig = plt.figure(figsize=(12,6))
+    ax  = fig.add_subplot(111, projection='3d')
+
+    xv0 = [[p[0] for p in t.path_v0] for t in dc.tracks3D_list]
+    yv0 = [[p[1] for p in t.path_v0] for t in dc.tracks3D_list]
+    zv0 = [[p[2] for p in t.path_v0] for t in dc.tracks3D_list]
+    xv1 = [[p[0] for p in t.path_v1] for t in dc.tracks3D_list]
+    yv1 = [[p[1] for p in t.path_v1] for t in dc.tracks3D_list]
+    zv1 = [[p[2] for p in t.path_v1] for t in dc.tracks3D_list]
+
+    for i in range(len(xv0)):
+        ax.scatter(xv0[i], yv0[i], zv0[i], c='c', s=2)
+        ax.scatter(xv1[i], yv1[i], zv1[i], c='orange', s=2)
+
+
+    ax.set_xlim3d(-300, 300)
+    ax.set_ylim3d(0, 300)
+    ax.set_zlim3d(-30, 300)
+    
+    ax.set_xlabel('View 0/X [cm]')
+    ax.set_ylabel('View 1/Y [cm]')
+    ax.set_zlabel('Drift/Z [cm]')
+
+
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+
+
+    run_nb = str(dc.evt_list[-1].run_nb)
+    evt_nb = str(dc.evt_list[-1].evt_nb_glob)
+
+
+    plt.savefig('ED/track3D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    #plt.show()
+    plt.close()

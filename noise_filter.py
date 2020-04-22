@@ -3,25 +3,30 @@ import data_containers as dc
 
 import numpy as np
 import numexpr as ne 
+import numba as nb
 
 def define_ROI_ADC(thresh):
     #dc.mask = np.where( (dc.data > thresh) | ~dc.alive_chan, False, True)
     dc.mask = ne.evaluate( "where((data > thresh) | ~alive_chan, 0, 1)", global_dict={'data':dc.data, 'alive_chan':dc.alive_chan}).astype(bool)
 
+
 def define_ROI(sig_thresh, iteration):
-    #ne.set_num_threads(4)
+    #ne.set_num_threads(4) #does not speed up things
+
     """ Update the mask based on pedestal RMS """    
     for it in range(iteration):
+        compute_pedestal_RMS()
 
-        rms = get_RMS()
-        rms = rms[:,:,:,None]
-        dc.mask = ne.evaluate( "where((data > sig_thresh*rms) | (~mask), 0, 1)", global_dict={'data':dc.data, 'mask':dc.mask}).astype(bool)
+        dc.ped_rms = dc.ped_rms[:,:,:,None]
+        dc.mask = ne.evaluate( "where((data > sig_thresh*rms) | (~mask), 0, 1)", global_dict={'data':dc.data, 'mask':dc.mask, 'rms':dc.ped_rms}).astype(bool)
+        dc.ped_rms = np.squeeze(dc.ped_rms, axis=3)
 
 
+def compute_pedestal_RMS():
+    dc.ped_rms =  np.std(dc.data * dc.mask, axis=3)
 
-def get_RMS():
-    return np.std(dc.data * dc.mask, axis=3)
-
+def compute_pedestal_mean():
+    dc.ped_mean = np.mean(dc.data * dc.mask, axis=3)
 
 def coherent_filter(groupings):
     """

@@ -13,20 +13,20 @@ HalfChPerCrate = int(n_ChPerCrate/2)
 
 
 def check():
-    if(len(dc.map_ref) > 0):
-        del dc.map_ref[:]
+    if(len(dc.map_ped) > 0):
+        del dc.map_ped[:]
 
 def ChannelMapper():    
     check()
     for idaq in range(cf.n_ChanTot):
         crp, view, vchan = DAQToCRP(idaq)
-        dc.map_ref.append(dc.pdmap(crp,view,vchan))
+        dc.map_ped.append(dc.pdmap(crp,view,vchan))
         """
         ev = cf.pdmap()
         ev.view = view
         ev.crp = crp
         ev.vchan = vchan
-        cf.map_ref.append(ev)
+        cf.map_ped.append(ev)
         """
 
 def DAQToCRP(daqch):

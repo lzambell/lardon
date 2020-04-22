@@ -79,11 +79,11 @@ def shape_and_store(data_raw, vread):
     """reshape the array and subtract reference pedestal"""    
     for idq in range(cf.n_ChanPerView):
 
-        crp, view, vch = dc.map_ref[idq+shift].get_ana_chan()
+        crp, view, vch = dc.map_ped[idq+shift].get_ana_chan()
 
         if(view != vread): continue
         if(crp > 1): continue #Do not care about CRP 2 & 3 ATM
-        pedval = dc.map_ref[idq+shift].ped 
+        pedval = dc.map_ped[idq+shift].ref_ped 
 
         if(crp < 0 or view < 0 or vch < 0):
             print(" ERROR ? ", idq)
