@@ -1,19 +1,19 @@
 * * * * *
 GENERAL
 * * * * *
-- broken channels -> change to crp,view,channel ?
-- Data container defined in a single place (like config) and could then used everywhere without loading it
-- Results storage ? ROOT ?
+
+- reconstruction parameters and run specific things (e.g. broken channel) written in an input file (+ have default values defined somewhere) : json file ?
+  + values to be stored in the output file (e.g. in ./infos table)
+
+- mc file reader (to be produced as well!)
+  + module to add noise (?)
 
 
 * * * * *
 ANALYSIS
 * * * * *
-- microphonic noise : sliced poly fit ? FFT ? 
-- ROI/hit found : fit it ? With what ?
-- Track finder from cluster
-- Track stitching
-- 3D track merger
-
+- microphonic noise : FFT2D ? FFT ? Keep it like that ?
+- Fit Hits ? 
+- 2D track finder : once found, refilter in forward and backward ?
+- Track stitching : add special care to LEM (+CRP) borders ?
 - light and crt reader
-- qscan output reader
