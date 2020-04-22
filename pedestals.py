@@ -9,11 +9,14 @@ def dump(i):
     print(" ped = ", cf.reference[i].ped, " +/- ", cf.reference[i].rms)
 """
 
-def GetPed(i):
-    return dc.map_ref[i].ped
 
-def GetPedRMS(i):
-    return dc.map_ref[i].rms
+
+
+def GetRefPed(i):
+    return dc.map_ped[i].ref_ped
+
+def GetRefPedRMS(i):
+    return dc.map_ped[i].ref_rms
 
 def get_closest_ped_run(run):
     calib_runs = glob.glob(cf.calib_path+"noise*.dat")
@@ -39,9 +42,5 @@ def MapRefPedestal(run):
             daqch = int(li[0])
             ped = float(li[7])
             rms = float(li[9])
-            dc.map_ref[daqch].set_pedestal(ped, rms)
-            """
-            cf.map_ref[daqch].ped = float(li[7])
-            cf.map_ref[daqch].rms = float(li[9])
-            """
+            dc.map_ped[daqch].set_ref_pedestal(ped, rms)
 

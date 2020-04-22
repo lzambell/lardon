@@ -1,6 +1,6 @@
 data_path = "/eos/experiment/neutplatform/protodune/rawdata/np02/rawdata/"
 calib_path = "/afs/cern.ch/user/n/np02onlp/public/calib/pedestals/"
-store_path = "." #/eos/user/l/lzambell/analysis/lardon/reco"
+store_path = "." #"/eos/user/l/lzambell/analysis/lardon/reco"
 
 
 n_CRP = 4
@@ -15,6 +15,7 @@ ChanPitch = 0.3125 #cm
 LAr_Temperature = 87.5
 E_drift = 0.166 #in kV/cm
 
+ADCtofC = 35.64 #from Qscan, to be cross checked
 
 """ BROKEN CHANNELS TO BE REMOVED FROM THE ANALYSIS"""
 

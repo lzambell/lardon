@@ -15,7 +15,8 @@ import plot_event as plot_ev
 import noise_filter as noise
 import hitfinder as hf
 import clustering as clus
-import track_2d as trk
+import track_2d as trk2d
+import track_3d as trk3d
 import store as store
 
 
@@ -24,8 +25,10 @@ def need_help():
     print(" -run <run number ex:1323> ")
     print(" -sub <sub file ex: 10_a> ")
     print(" -n   <number of event to process>  [default (or -1) is all]")
+    print(" -out <output name optn>")
     print(" -type <evt type cosmics/ped/...> [default is cosmics]")
     print(" -h print this message")
+
     sys.exit()
     
 
@@ -44,7 +47,7 @@ signal_thresh  = 4.
 signal_thresh_2  = 2.5
 adc_thresh     = 6.
 coherent_groups = [64,320]
-
+outname_option = ""
 
 nevent = -1 
 evt_type = "cosmics"          
@@ -58,12 +61,20 @@ for index, arg in enumerate(sys.argv):
         nevent = int(sys.argv[index + 1])
     elif arg in ['-type'] and len(sys.argv) > index + 1:
         evt_type = sys.argv[index + 1]
+    elif arg in ['-out'] and len(sys.argv) > index + 1:
+        outname_option = sys.argv[index + 1]
                 
 
 tstart = time.time()
 
 name_in = cf.data_path + run_n + "/" + run_n + "_" + evt_file + "." + evt_type
-name_out = cf.store_path + "/" + run_n + "_" + evt_file + ".h5"
+
+if(outname_option):
+    outname_option = "_"+outname_option
+else:
+    outname_option = ""
+    
+name_out = cf.store_path + "/" + run_n + "_" + evt_file + outname_option + ".h5"
 
 if(os.path.exists(name_in) is False):
     print(" ERROR ! file ", name_in, " do not exists ! ")
@@ -88,7 +99,8 @@ if(nevent > nb_evt or nevent < 0):
     nevent = nb_evt
 
 print(" --->> Will process ", nevent, " events [ out of ", nb_evt, "] of run ", run_nb)
-
+store.store_infos(output, run_n, evt_file, nevent, time.time())
+ 
 sequence = []
 for i in range(nb_evt):
     seq  = np.fromfile( data, dtype='<u4', count=4)
@@ -136,6 +148,20 @@ for ievent in range(nevent):
 
     if(run_nb <= cf.run_inv_signal):
         dc.data *= -1.    
+
+    t_ped_raw = time.time()
+
+    noise.compute_pedestal_mean()
+    noise.compute_pedestal_RMS()
+
+    for i in range(cf.n_ChanTot):
+        crp, view, ch = dc.map_ped[i].get_ana_chan()
+        if(crp >= cf.n_CRPUsed): continue
+        dc.map_ped[i].set_raw_pedestal(dc.ped_mean[crp,view,ch], dc.ped_rms[crp,view,ch])
+    
+
+    print("time to compute pedestals : %.3f s"%(time.time() - t_ped_raw))
+
     
 
     tfft = time.time()
@@ -150,10 +176,10 @@ for ievent in range(nevent):
 
     """ Update ROI based on ped rms """
     troi = time.time()
-    noise.define_ROI(signal_thresh, 2)
-    
+    noise.define_ROI(signal_thresh, 2)    
     t3 = time.time()
     print(" 1st ROi : %.2f"% (t3-troi))
+
 
     """Apply coherent filter(s) """
     noise.coherent_filter(coherent_groups)
@@ -165,8 +191,19 @@ for ievent in range(nevent):
 
     """ Update ROI regions """
     noise.define_ROI(signal_thresh, 2)
-
     print(" time to ROI %.2f"%(time.time() - t4))
+
+    """ final pedestal mean and rms """
+    noise.compute_pedestal_mean()
+    noise.compute_pedestal_RMS()
+    for i in range(cf.n_ChanTot):
+        crp, view, ch = dc.map_ped[i].get_ana_chan()
+        if(crp >= cf.n_CRPUsed): continue
+        dc.map_ped[i].set_evt_pedestal(dc.ped_mean[crp,view,ch], dc.ped_rms[crp,view,ch])
+
+
+
+
 
 
     """invert the mask, so now True is signal (and not broken channels)"""    
@@ -174,8 +211,9 @@ for ievent in range(nevent):
 
     
     t6 = time.time()
-    hf.HitFinder(noise.get_RMS())
 
+    """ parameters : pad left (n ticks) pad right (n ticks), min dt, thr1, thr2 """
+    hf.hit_finder(5, 10, 10, 3., 4.)
 
     print(" time to Hit Search %.3f"%(time.time() - t6))
 
@@ -198,16 +236,40 @@ for ievent in range(nevent):
     #plot_ev.plot_hits_view()
 
     t8 = time.time()
-    
-    """parameters : rcut, chi2cut, y error, slope error, pbeta"""
-    trk.FindTracks(6., 12., 0.3125, 1., 3.)
+
+    """parameters : min nb hits, rcut, chi2cut, y error, slope error, pbeta"""
+    trk2d.find_tracks(4, 6., 12., 0.3125, 1., 3.)
+
+    t9 = time.time()
+    print("time to find tracks %.3f"%(t9-t8))
+
+    #plot_ev.plot_tracks2D("raw")
+
+    tst = time.time()
+    """ parameters are : min distance in between 2 tracks end points, slope error tolerance, extrapolated distance tolerance"""
+    trk2d.stitch_tracks(30., 3., 5.)
+    print("time to stitch tracks %.3f"%(time.time()-tst))
 
 
-    print("time to find tracks %.3f"%(time.time()-t8))
-    #plot_ev.plot_tracks2D()
+
+    #plot_ev.plot_tracks2D("stitch")
     #plot_ev.plot_track2D_var()
 
-    store.store_tracks(output, ievent)
+    t3d = time.time()
+    """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance """
+    trk3d.find_tracks(3., 0.25)
+    print("Time build 3D tracks ", time.time() - t3d)
+    #plot_ev.plot_tracks3D()
+    dc.evt_list[-1].dump_reco()    
+
+
+    gr = store.new_event(output, ievent)
+
+    store.store_event(output, gr)
+    store.store_pedestal(output, gr)
+    store.store_hits(output, gr)
+    store.store_tracks2D(output, gr)
+    store.store_tracks3D(output, gr)
 
 
     """

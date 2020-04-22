@@ -42,10 +42,11 @@ def dbscan(eps, min_samp, y_squeez):
             labels = db.labels_
 
             for h,cluster in zip(hits, labels):
-                h.cluster = cluster if cluster==-1 else cluster + dc.ncluster[icrp,iview]
+                h.cluster = cluster if cluster==-1 else cluster + dc.evt_list[-1].nClusters[icrp,iview]
 
             n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-            dc.ncluster[icrp,iview] += n_clusters
+            #dc.ncluster[icrp,iview] += n_clusters
+            dc.evt_list[-1].nClusters[icrp, iview] += n_clusters
 
             #n_noise = list(labels).count(-1)
             #print("CRP ", icrp, " View ", iview)

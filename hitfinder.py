@@ -7,21 +7,13 @@ import numpy as np
 
 """numba slows down this code!"""
 #@nb.jit(forceobj=True,nopython=True)
-def HitSearch(data,rms,crp,view,channel,start):
+def hit_search(data,crp,view,channel,start, dt_min, thr1, thr2):
     """search hit-shape in a list of points"""
     """algorithm from qscan"""
     
     ll = []
     npts = len(data)
     hitFlag = False
-
-    """reco parameters"""
-    dt_min = 10    
-    thr1 = 3.*rms
-    thr2 = 4.*rms
-
-    if(thr1 < 1): thr1 = 1.
-    if(thr2 < 1): thr2 = 1.
 
     i=0
     hitFlag = False
@@ -77,12 +69,8 @@ def HitSearch(data,rms,crp,view,channel,start):
     return ll
 
 
-def HitFinder(rms): 
+def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2): 
     
-    dt_min = 10
-    pad_left = 5
-    pad_right = 10
-
     """ get boolean roi based on mask and alive channels """
     ROI = np.array(~dc.mask & dc.alive_chan, dtype=bool)
 
@@ -132,9 +120,17 @@ def HitFinder(rms):
                     break
                       
             
-            adc = dc.data[crp,view,channel,tdc_start:tdc_stop+1]                
-            hh = HitSearch(adc, rms[crp,view,channel], crp, view, channel, tdc_start)
-            
+            adc = dc.data[crp, view, channel, tdc_start:tdc_stop+1]                
+
+            thr1 = n_sig_1 * dc.ped_rms[crp, view, channel]
+            thr2 = n_sig_2 * dc.ped_rms[crp, view, channel]
+
+            if(thr1 < 1): thr1 = 1.
+            if(thr2 < 1): thr2 = 1.
+
+            hh = hit_search(adc, crp, view, channel, tdc_start, dt_min, thr1, thr2)
+
+            dc.evt_list[-1].nHits[crp,view] += len(hh)
             dc.hits_list.extend(hh)
 
     print("nb of hits found ",len(dc.hits_list))
@@ -144,5 +140,7 @@ def HitFinder(rms):
     print("Drift Velocity : v = %.3f mm/mus"%v)
 
     """ transforms hit channel and tdc to positions """
-    [x.GetDistances(v, cf.ChanPitch) for x in dc.hits_list]
+    [x.hit_positions(v, cf.ChanPitch) for x in dc.hits_list]
 
+    """ compute hit charge in fC """
+    [x.hit_charge() for x in dc.hits_list]
