@@ -219,7 +219,7 @@ def store_tracks3D(h5file, group):
         
 
         h5file.create_array(t3d_hits_v0, 'track_%i'%(i), np.asarray(pts_v0), 'track hits')
-        h5file.create_array(t3d_hits_v1, 'track_%i'%(i), np.asarray(pts_v0), 'track hits')
+        h5file.create_array(t3d_hits_v1, 'track_%i'%(i), np.asarray(pts_v1), 'track hits')
         i += 1
 
         t3d.append()
