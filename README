@@ -12,7 +12,7 @@ then :
 conda activate lardenv
 
 To run lardon on data : 
-python3 reader.py -run <run nb> -s <subfile name> -n <nb of events (optional)>
+python3 reader.py -run <run nb> -sub <subfile name> -n <nb of events (optional)> -out <output file option>
 
 To run lardon on MC : 
 ... to be implemented ...

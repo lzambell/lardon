@@ -78,38 +78,63 @@ def find_tracks(ztol, qfrac):
     t_v0 = [x for x in dc.tracks2D_list if x.view == 0]
     t_v1 = [x for x in dc.tracks2D_list if x.view == 1]
     
-    """ to do : only try to match unmatched tracks ; find the best match (currently first ok track is taken)"""
+    """ to do : find the best match (currently first ok track is taken)"""
     for ti in t_v0:
+
+        if(ti.matched >= 0): 
+            continue
+
+        #print("V0 track trial ")
+        #ti.mini_dump()
+
+        tbest = ti
+        mindist = 9999.
+        match = False
         for tj in t_v1:
+
+            if(tj.matched >= 0):
+                continue
+
             if( (ti.ini_crp == tj.ini_crp) and (ti.end_crp == tj.end_crp) ):
+                #tj.mini_dump()
                 d_start = math.fabs( ti.path[0][1] - tj.path[0][1] )
                 d_stop  = math.fabs( ti.path[-1][1] - tj.path[-1][1] )
 
                 qv0 = ti.tot_charge
                 qv1 = tj.tot_charge
                 balance =  math.fabs(qv0 - qv1)/(qv0 + qv1)
+                #print("--> %.1f, %.1f, %.1f"%( d_start, d_stop, balance))
                 if( d_start < ztol and d_stop < ztol and balance < qfrac):
+                    d = d_start + d_stop
+                    if(d < mindist):
+                        tbest = tj
+                        mindist = d
+                        match = True
+                    #print(" -> candidate at d=%.1f"%d)
 
-                    #print("\n 3D CANDIDATE ! :: %.1f, %.1f, %.1f"%( d_start, d_stop, balance))
-                    #ti.mini_dump()
-                    #tj.mini_dump()
+        if(match == True):
+            #print("\n 3D CANDIDATE ! :: %.1f, %.1f, %.1f"%( d_start, d_stop, balance))
+            #ti.mini_dump()
+            #tj.mini_dump()
+            #print(" will match with %.1f"%(mindist))
+            
+            track = dc.trk3D(ti, tbest)
+            l, t, q = complete_trajectory(ti, tbest, 0)
+            
+            if(l < 0):
+                continue
+            track.set_view0(l, t, q)
+                
+            l, t, q = complete_trajectory(tbest, ti, 1)
+                
+            if(l < 0):
+                continue
+            track.set_view1(l, t, q)
 
-                    track = dc.trk3D(ti, tj)
-                    l, t, q = complete_trajectory(ti, tj, 0)
-                    if(l < 0):
-                        continue
-                    track.set_view0(l, t, q)
-                    
-                    l, t, q = complete_trajectory(tj, ti, 1)
+            print("OK !! -> ", mindist)
+            print("V0 (%.1f, %.1f, %.1f) -> (%.1f, %.1f, %.1f)"% (track.path_v0[0][0],track.path_v0[0][1], track.path_v0[0][2], track.path_v0[-1][0] , track.path_v0[-1][1] , track.path_v0[-1][2] ))
+            print("V1 (%.1f, %.1f, %.1f) -> (%.1f, %.1f, %.1f)"% (track.path_v1[0][0],track.path_v1[0][1], track.path_v1[0][2], track.path_v1[-1][0] , track.path_v1[-1][1] , track.path_v1[-1][2] ))
 
-                    if(l < 0):
-                        continue
-                    track.set_view1(l, t, q)
+            dc.tracks3D_list.append(track)
 
-                    #print("TEST ")
-                    #print("V0 (%.1f, %.1f, %.1f) -> (%.1f, %.1f, %.1f)"% (track.path_v0[0][0],track.path_v0[0][1], track.path_v0[0][2], track.path_v0[-1][0] , track.path_v0[-1][1] , track.path_v0[-1][2] ))
-                    #print("V1 (%.1f, %.1f, %.1f) -> (%.1f, %.1f, %.1f)"% (track.path_v1[0][0],track.path_v1[0][1], track.path_v1[0][2], track.path_v1[-1][0] , track.path_v1[-1][1] , track.path_v1[-1][2] ))
-
-                    dc.tracks3D_list.append(track)
-
-                    dc.evt_list[-1].nTracks3D += 1
+            dc.evt_list[-1].nTracks3D += 1

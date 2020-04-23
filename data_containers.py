@@ -191,6 +191,7 @@ class trk2D:
     path    = []
     dQ      = []
     chi2    = -1
+    matched = -1
     def __init__(self, ini_crp, view, ini_slope, ini_slope_err, x0, y0, q0, chi2):
         self.ini_crp = ini_crp
         self.end_crp = ini_crp
@@ -207,7 +208,8 @@ class trk2D:
         self.tot_charge = q0
         self.len_straight = 0.
         self.len_path = 0.
-        
+        self.matched = -1
+
     def __lt__(self,other):
         """ sort tracks by decreasing Z and increasing channel """
         return (self.path[0][1] > other.path[0][1]) or (self.path[0][1] == other.path[0][1] and self.path[0][0] < other.path[0][0])
@@ -251,7 +253,7 @@ class trk2D:
         self.tot_charge += other.tot_charge
         self.len_path += other.len_path 
         self.len_path += self.dist(other)
-
+        self.matched = -1
         if(self.path[0][1] > other.path[0][1]):
                self.ini_crp = self.ini_crp
                self.end_crp = other.end_crp
@@ -319,6 +321,9 @@ class trk3D:
     end_phi   = -1
 
     def __init__(self, tv0, tv1):
+        tv0.matched = evt_list[-1].nTracks3D
+        tv1.matched = evt_list[-1].nTracks3D
+
         self.ini_crp = tv0.ini_crp
         self.end_crp = tv0.end_crp
 
