@@ -214,8 +214,8 @@ def store_tracks3D(h5file, group):
         t3d['phi_ini']   = t.ini_phi
         t3d['phi_end']   = t.end_phi
 
-        pts_v0 = [[p[0], p[1], q] for p,q in zip(t.path_v0,t.dQds_v0)]
-        pts_v1 = [[p[0], p[1], q] for p,q in zip(t.path_v1,t.dQds_v1)]
+        pts_v0 = [[p[0], p[1], p[2], q] for p,q in zip(t.path_v0,t.dQds_v0)]
+        pts_v1 = [[p[0], p[1], p[2], q] for p,q in zip(t.path_v1,t.dQds_v1)]
         
 
         h5file.create_array(t3d_hits_v0, 'track_%i'%(i), np.asarray(pts_v0), 'track hits')
