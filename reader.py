@@ -165,8 +165,10 @@ for ievent in range(nevent):
     
 
     tfft = time.time()
-    noise.FFTLowPass(lowpasscut, freqlines)    
-    print(" time to fft %.2f"%( time.time() - tfft))
+    #noise.FFTLowPass(lowpasscut, freqlines)    
+    #print(" time to fft %.2f"%( time.time() - tfft))
+    
+    noise.FFT2D()
 
     tadc = time.time()
     """ 1st ROI attempt based on ADC cut + broken channels """
@@ -182,9 +184,9 @@ for ievent in range(nevent):
 
 
     """Apply coherent filter(s) """
-    noise.coherent_filter(coherent_groups)
+    #noise.coherent_filter(coherent_groups)
     
-    print(" time to coh filt %.2f"%( time.time() - t3))
+    #print(" time to coh filt %.2f"%( time.time() - t3))
 
 
     t4 = time.time()
@@ -243,7 +245,7 @@ for ievent in range(nevent):
     t9 = time.time()
     print("time to find tracks %.3f"%(t9-t8))
 
-    #plot_ev.plot_tracks2D("raw")
+    plot_ev.plot_tracks2D("raw")
 
     tst = time.time()
     """ parameters are : min distance in between 2 tracks end points, slope error tolerance, extrapolated distance tolerance"""
@@ -259,7 +261,7 @@ for ievent in range(nevent):
     """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance """
     trk3d.find_tracks(3., 0.25)
     print("Time build 3D tracks ", time.time() - t3d)
-    #plot_ev.plot_tracks3D()
+    plot_ev.plot_tracks3D()
     dc.evt_list[-1].dump_reco()    
 
 
