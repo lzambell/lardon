@@ -62,7 +62,7 @@ def plot_waveform(data, legtitle, colors, option=None):
     ax = []
 
     for ip in range(nplot):
-        ax.append(fig.add_subplot(nplot,1,ip+1))
+        ax.append(fig.add_subplot(nplot,1,ip+1, sharex=True))
         d = data[ip]                
         plt.plot(d, colors[ip], label=legtitle[ip])
         ax[-1].set_xlabel('Time [tdc]')
@@ -84,6 +84,75 @@ def plot_waveform(data, legtitle, colors, option=None):
 
 
     plt.savefig('ED/waveform'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.close()    
+
+
+
+def plot_waveform_evo(data, legtitle, colors, option=None):
+
+    nplot = len(data[0])
+    nstep = len(data)
+    if(nplot > 9):
+        print(" ooops, I will only plot 9 waveforms")
+
+    fig = plt.figure(figsize=(12,9))
+    ax = []
+
+    for ip in range(nplot):
+        ax.append(fig.add_subplot(nplot,1,ip+1))#, sharex=True))
+        for iev in range(nstep):
+            d = data[iev][ip]    
+            plt.plot(d, colors[iev], label=legtitle[iev])
+            ax[-1].set_xlabel('Time [tdc]')
+            ax[-1].set_ylabel('ADC')
+            ax[-1].set_ylim(-8., 35.)
+        plt.legend()
+    plt.subplots_adjust(bottom=0.05, top=.98, hspace=0.27)
+
+
+
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+
+
+    run_nb = str(dc.evt_list[-1].run_nb)
+    evt_nb = str(dc.evt_list[-1].evt_nb_glob)
+
+
+    plt.savefig('ED/waveform_evolution'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    #plt.show()
+    plt.close()    
+
+
+
+
+def plot_waveform_hits(crp, view, channel, option=None):
+
+    fig = plt.figure(figsize=(12,3))
+    ax = []
+    tdc = np.arange(0,10000,1)    
+    wvf = dc.data[crp,view,channel,:]
+    hit_start = [x.start for x in dc.hits_list if x.view == view and x.crp == crp and x.channel == channel]
+    hit_stop = [x.stop for x in dc.hits_list if x.view == view and x.crp == crp and x.channel == channel]
+
+    plt.plot(tdc, wvf, c='black')
+    for f, t in zip(hit_start, hit_stop):
+        plt.plot(tdc[f:t+1], wvf[f:t+1], marker=".")
+
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+
+
+    run_nb = str(dc.evt_list[-1].run_nb)
+    evt_nb = str(dc.evt_list[-1].evt_nb_glob)
+
+
+    plt.savefig('ED/waveform_hits'+option+'_run_'+run_nb+'_evt_'+evt_nb+'_crp'+str(crp)+'_v'+str(view)+'_ch'+str(channel)+'.png')
+    plt.show()
     plt.close()    
 
 
@@ -166,7 +235,7 @@ def plot_pedestal(datas, legtitle, colors, option=None):
 
 
 
-def plot_event_fft(data):    
+def plot_event_fft(data, zmax=1.25, option=None):    
 
     fig = plt.figure(figsize=(12,9))
     ax = []
@@ -184,7 +253,7 @@ def plot_event_fft(data):
 
             plt.colorbar(im[-1])
 
-            plt.ylim(0.,0.25)
+            plt.ylim(0.,zmax)
             #plt.ylim(0.06, 0.08)
 
             ax[-1].set_xlabel('View Channel')
@@ -204,8 +273,8 @@ def plot_event_fft(data):
 
 
 
-    plt.savefig('ED/fft_run_'+run_nb+'_evt_'+evt_nb+'.png')
-    #plt.show()
+    plt.savefig('ED/fft'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.show()
     plt.close()
 
 
@@ -230,7 +299,7 @@ def plot_hits_clustered(option=None):
             colors = np.array(list(itr.islice(itr.cycle(['#377eb8', '#ff7f00', '#4daf4a',
                                                          '#f781bf', '#a65628', '#984ea3',
                                                          '#79f2ff', '#e41a1c', '#dede00']),
-                                              int(dc.ncluster[icrp,iview] + 1))))
+                                              int(dc.evt_list[-1].nClusters[icrp,iview] + 1))))
 
             # add grey color for outliers (if any)
             colors = np.append(colors, ["#c7c7c7"])
@@ -381,14 +450,30 @@ def plot_tracks2D(option=None):
     hit_x_v0 = [x.X for x in dc.hits_list if x.view == 0]
     hit_z_v0 = [x.Z for x in dc.hits_list if x.view == 0]
 
+
+    hit1_x_v0 = [x.X for x in dc.hits_list if x.view == 0 and x.matched==1]
+    hit1_z_v0 = [x.Z for x in dc.hits_list if x.view == 0 and x.matched==1]
+
+    hit2_x_v0 = [x.X for x in dc.hits_list if x.view == 0 and x.matched==2]
+    hit2_z_v0 = [x.Z for x in dc.hits_list if x.view == 0 and x.matched==2]
+
     hit_x_v0_noise = [x.X for x in dc.hits_list if x.view == 0 and x.cluster==-1]
     hit_z_v0_noise = [x.Z for x in dc.hits_list if x.view == 0 and x.cluster==-1]
 
     tracks_hits_x_v0 = [[p[0] for p in t.path] for t in dc.tracks2D_list if t.view==0]
     tracks_hits_z_v0 = [[p[1] for p in t.path] for t in dc.tracks2D_list if t.view==0]
 
-    hit_x_v1 = [x.X for x in dc.hits_list if x.view == 1]
-    hit_z_v1 = [x.Z for x in dc.hits_list if x.view == 1]
+
+
+    hit_x_v1 = [x.X for x in dc.hits_list if x.view == 1 ]
+    hit_z_v1 = [x.Z for x in dc.hits_list if x.view == 1 ]
+
+
+    hit1_x_v1 = [x.X for x in dc.hits_list if x.view == 1 and x.matched==1]
+    hit1_z_v1 = [x.Z for x in dc.hits_list if x.view == 1 and x.matched==1]
+
+    hit2_x_v1 = [x.X for x in dc.hits_list if x.view == 1 and x.matched==2]
+    hit2_z_v1 = [x.Z for x in dc.hits_list if x.view == 1 and x.matched==2]
 
     hit_x_v1_noise = [x.X for x in dc.hits_list if x.view == 1 and x.cluster==-1]
     hit_z_v1_noise = [x.Z for x in dc.hits_list if x.view == 1 and x.cluster==-1]
@@ -399,11 +484,15 @@ def plot_tracks2D(option=None):
 
 
     ax_v0.scatter(hit_x_v0, hit_z_v0, c="#ffb77d", s=2)#ffb77d
+
+    ax_v0.scatter(hit1_x_v0, hit1_z_v0, c="#28568f", s=2)#ffb77d
+    ax_v0.scatter(hit2_x_v0, hit2_z_v0, c="#abdf7f", s=2)#ffb77d
+
     ax_v0.scatter(hit_x_v0_noise, hit_z_v0_noise, c="#d8cfd6", s=2)
     
 
     for tx,tz in zip(tracks_hits_x_v0, tracks_hits_z_v0):
-        ax_v0.scatter(tx, tz, c="#28568f",s=2) ##6d40cf
+        #ax_v0.scatter(tx, tz, c="#28568f",s=2) ##6d40cf
         ax_v0.plot(tx,tz, c="#de425b",linewidth=1)#f65789
 
     ax_v0.set_title('View 0')
@@ -413,10 +502,14 @@ def plot_tracks2D(option=None):
     ax_v0.set_ylim([-30., 300])
 
     ax_v1.scatter(hit_x_v1, hit_z_v1, c="#ffb77d", s=2)#ffb77d
+
+    ax_v1.scatter(hit1_x_v1, hit1_z_v1, c="#28568f", s=2)#ffb77d
+    ax_v1.scatter(hit2_x_v1, hit2_z_v1, c="#abdf7f", s=2)#ffb77d
+
     ax_v1.scatter(hit_x_v1_noise, hit_z_v1_noise, c="#d8cfd6", s=2)
 
     for tx,tz in zip(tracks_hits_x_v1, tracks_hits_z_v1):
-        ax_v1.scatter(tx, tz, c="#28568f",s=2)#6d40cf
+        #ax_v1.scatter(tx, tz, c="#28568f",s=2)#6d40cf
         ax_v1.plot(tx,tz, c="#de425b",linewidth=1)#f65789
 
 
@@ -436,7 +529,7 @@ def plot_tracks2D(option=None):
 
 
     plt.savefig('ED/track2D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
-    #plt.show()
+    plt.show()
     plt.close()
 
 
@@ -481,6 +574,92 @@ def plot_track2D_var(option=None):
 
 
 
+def plot_tracks3D_proj(option=None):
+
+    fig = plt.figure(figsize=(12,6))
+    gs = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[2,1])
+
+    #ax_col = fig.add_subplot(gs[0,:])
+    ax_v0 = fig.add_subplot(gs[0, 0])
+    ax_v1 = fig.add_subplot(gs[0, 1], sharey=ax_v0)
+
+    hit_x_v0 = [x.X for x in dc.hits_list if x.view == 0]
+    hit_z_v0 = [x.Z for x in dc.hits_list if x.view == 0]
+
+    hit_x_v0_noise = [x.X for x in dc.hits_list if x.view == 0 and x.cluster==-1]
+    hit_z_v0_noise = [x.Z for x in dc.hits_list if x.view == 0 and x.cluster==-1]
+
+    tracks_hits_x_v0 = [[p[0] for p in t.path] for t in dc.tracks2D_list if t.view==0]
+    tracks_hits_z_v0 = [[p[1] for p in t.path] for t in dc.tracks2D_list if t.view==0]
+    tracks_hits_x_v0_match = [[p[0] for p in t.path] for t in dc.tracks2D_list if t.view==0 and t.matched >=0]
+    tracks_hits_z_v0_match = [[p[1] for p in t.path] for t in dc.tracks2D_list if t.view==0 and t.matched>=0]
+
+    #tracks_match_v0  = [["#ad37ad" if t.matched < 0 else "#bd384d" for p in t.path] for t in dc.tracks2D_list if t.view == 0]
+
+
+    hit_x_v1 = [x.X for x in dc.hits_list if x.view == 1]
+    hit_z_v1 = [x.Z for x in dc.hits_list if x.view == 1]
+
+    hit_x_v1_noise = [x.X for x in dc.hits_list if x.view == 1 and x.cluster==-1]
+    hit_z_v1_noise = [x.Z for x in dc.hits_list if x.view == 1 and x.cluster==-1]
+
+    tracks_hits_x_v1 = [[p[0] for p in t.path] for t in dc.tracks2D_list if t.view==1]
+    tracks_hits_z_v1 = [[p[1] for p in t.path] for t in dc.tracks2D_list if t.view==1]
+    tracks_hits_x_v1_match = [[p[0] for p in t.path] for t in dc.tracks2D_list if t.view==1 and t.matched>=0]
+    tracks_hits_z_v1_match = [[p[1] for p in t.path] for t in dc.tracks2D_list if t.view==1 and t.matched >=0]
+    #tracks_match_v1  = [["#ad37ad" if t.matched < 0 else "#bd384d" for p in t.path] for t in dc.tracks2D_list if t.view == 1]
+
+
+    #trk_colors=np.array([["#ad37ad"], ["#bd384d"]])
+
+    ax_v0.scatter(hit_x_v0, hit_z_v0, c="#ffb77d", s=2)#ffb77d
+    ax_v0.scatter(hit_x_v0_noise, hit_z_v0_noise, c="#d8cfd6", s=2)
+    
+
+    for tx,tz in zip(tracks_hits_x_v0, tracks_hits_z_v0):
+        ax_v0.scatter(tx, tz, c="#28568f",s=2) ##6d40cf
+        ax_v0.plot(tx,tz, c="#de255b",linewidth=1)#f65789
+    for tx,tz in zip(tracks_hits_x_v0_match, tracks_hits_z_v0_match):
+        ax_v0.plot(tx,tz, c="#00a9b2",linewidth=2)#f65789
+
+    ax_v0.set_title('View 0')
+    ax_v0.set_ylabel('Z [cm]')
+    ax_v0.set_xlabel('Y [cm]')
+    ax_v0.set_xlim([-300., 300])
+    ax_v0.set_ylim([-30., 300])
+
+    ax_v1.scatter(hit_x_v1, hit_z_v1, c="#ffb77d", s=2)#ffb77d
+    ax_v1.scatter(hit_x_v1_noise, hit_z_v1_noise, c="#d8cfd6", s=2)
+
+
+
+    for tx,tz in zip(tracks_hits_x_v1, tracks_hits_z_v1):
+        ax_v1.scatter(tx, tz, c="#28568f",s=2)#6d40cf
+        ax_v1.plot(tx,tz, c="#de425b",linewidth=1)#f65789
+
+    for tx,tz in zip(tracks_hits_x_v1_match, tracks_hits_z_v1_match):
+        ax_v1.plot(tx,tz, c="#00a9b2",linewidth=2)#f65789
+
+    ax_v1.set_title('View 1')
+    ax_v1.set_xlabel('X [cm]')
+    ax_v1.set_xlim([0,300])
+    ax_v1.set_ylim([-30., 300])
+    
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+
+
+    run_nb = str(dc.evt_list[-1].run_nb)
+    evt_nb = str(dc.evt_list[-1].evt_nb_glob)
+
+
+    plt.savefig('ED/track3D_proj'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.show()
+    plt.close()
+
+
 def plot_tracks3D(option=None):
 
     fig = plt.figure(figsize=(12,6))
@@ -489,6 +668,7 @@ def plot_tracks3D(option=None):
     xv0 = [[p[0] for p in t.path_v0] for t in dc.tracks3D_list]
     yv0 = [[p[1] for p in t.path_v0] for t in dc.tracks3D_list]
     zv0 = [[p[2] for p in t.path_v0] for t in dc.tracks3D_list]
+
     xv1 = [[p[0] for p in t.path_v1] for t in dc.tracks3D_list]
     yv1 = [[p[1] for p in t.path_v1] for t in dc.tracks3D_list]
     zv1 = [[p[2] for p in t.path_v1] for t in dc.tracks3D_list]

@@ -14,14 +14,20 @@ def complete_trajectory(track, other, view):
     """ order lists according to z increasing """ 
     z_o, x_o = (list(t) for t in zip(*sorted(zip(z_o, x_o))))
 
+
+
     """ ugly fix to remove multiple hits at the same z """
     if(len(z_o) != len(set(z_o))) :
         i=0
         while(i < len(z_o)):
-            if(z_o[i-1] == z_o[i]):
+            #if(z_o[i] - z_o[i-1] < epsilon):
+            if(z_o[i-1] >= z_o[i]):
                 del z_o[i]
                 del x_o[i]
-            i += 1
+            else:
+                i += 1
+    #print(z_o)
+
 
     """at least 3 points for the spline """
     if(len(z_o) < 4):
@@ -42,7 +48,7 @@ def complete_trajectory(track, other, view):
         x = track.path[i][0]
         z = track.path[i][1]
 
-        if( i == 0):
+        if( i == 0 ):
             a0 = 0. if track.ini_slope == 0 else 1./track.ini_slope
         else:
             dx = track.path[i][0] - track.path[i-1][0]

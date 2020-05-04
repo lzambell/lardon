@@ -40,7 +40,7 @@ class PFilter:
 
     def getSlopeErr(self):
         det = self.det(self.info)
-        return math.sqrt(self.info[0]/det)
+        return 0. if det == 0. else math.sqrt(math.fabs(self.info[0]/det))
         
     def getCorr(self):
         erry = self.getYerr()
