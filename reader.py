@@ -2,7 +2,6 @@ import sys
 import os
 import numpy as np
 import time 
-#from tables import *
 import tables as tables
 
 import config as cf
@@ -41,12 +40,12 @@ else:
             
 
 """ Reconstruction parameters """
-lowpasscut     = 0.1 #MHz    
-freqlines      = [0.00125, 0.0234] #in MHz
-signal_thresh  = 4.
+lowpasscut       = 0.06 #0.1 #MHz    
+freqlines        = []#0.0234, 0.0625, 0.0700] #in MHz
+signal_thresh    = 4.
 signal_thresh_2  = 2.5
-adc_thresh     = 6.
-coherent_groups = [64,320]
+adc_thresh       = 6.
+coherent_groups  = [64, 32, 8]
 outname_option = ""
 
 nevent = -1 
@@ -162,15 +161,40 @@ for ievent in range(nevent):
 
     print("time to compute pedestals : %.3f s"%(time.time() - t_ped_raw))
 
-    
+    """
+    wvf_raw_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
+    wvf_raw_crp0_v1 = [dc.data[0,1,100,:].copy(), dc.data[0,1,400,:].copy(), dc.data[0,1,850,:].copy()]
+    wvf_raw_crp1_v0 = [dc.data[1,0,100,:].copy(), dc.data[1,0,400,:].copy(), dc.data[1,0,850,:].copy()]
+    wvf_raw_crp1_v1 = [ dc.data[1,1,100,:].copy(), dc.data[1,1,400,:].copy(), dc.data[1,1,850,:].copy()]
+    """
 
     tfft = time.time()
-    #noise.FFTLowPass(lowpasscut, freqlines)    
-    #print(" time to fft %.2f"%( time.time() - tfft))
-    
-    noise.FFT2D()
 
+    ps = noise.FFTLowPass(lowpasscut, freqlines)
+
+    """
+    if(ievent==0):
+        ps_avg = ps/nevent #noise.FFTLowPass(lowpasscut, freqlines)/nevent
+    else:
+        ps_avg += ps/nevent #noise.FFTLowPass(lowpasscut, freqlines)/nevent
+    """
+
+    #plot_ev.plot_event_display("fft"+outname_option)
+
+    
+    #noise.FFT2D()
+
+
+    """
+    wvf_fft_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
+    wvf_fft_crp0_v1 = [dc.data[0,1,100,:].copy(), dc.data[0,1,400,:].copy(), dc.data[0,1,850,:].copy()]
+    wvf_fft_crp1_v0 = [dc.data[1,0,100,:].copy(), dc.data[1,0,400,:].copy(), dc.data[1,0,850,:].copy()]
+    wvf_fft_crp1_v1 = [ dc.data[1,1,100,:].copy(), dc.data[1,1,400,:].copy(), dc.data[1,1,850,:].copy()]
+    """
+
+    print(" time to fft %.2f"%( time.time() - tfft))
     tadc = time.time()
+
     """ 1st ROI attempt based on ADC cut + broken channels """
     noise.define_ROI_ADC(adc_thresh)
     print("adc cut roi based %.2f"%(time.time() - tadc))
@@ -184,15 +208,31 @@ for ievent in range(nevent):
 
 
     """Apply coherent filter(s) """
-    #noise.coherent_filter(coherent_groups)
-    
-    #print(" time to coh filt %.2f"%( time.time() - t3))
 
+    noise.coherent_filter(coherent_groups)
+
+    """
+    wvf_coh_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
+    wvf_coh_crp0_v1 = [dc.data[0,1,100,:].copy(), dc.data[0,1,400,:].copy(), dc.data[0,1,850,:].copy()]
+    wvf_coh_crp1_v0 = [dc.data[1,0,100,:].copy(), dc.data[1,0,400,:].copy(), dc.data[1,0,850,:].copy()]
+    wvf_coh_crp1_v1 = [ dc.data[1,1,100,:].copy(), dc.data[1,1,400,:].copy(), dc.data[1,1,850,:].copy()]
+    """
+    
+    """
+    plot_ev.plot_waveform_evo([wvf_raw_crp0_v0, wvf_fft_crp0_v0, wvf_coh_crp0_v0], ['raw','fft','coh'], ['black','cyan','orange'],"crp0_v0"+outname_option)
+    plot_ev.plot_waveform_evo([wvf_raw_crp0_v1, wvf_fft_crp0_v1, wvf_coh_crp0_v1], ['raw','fft','coh'], ['black','cyan','orange'],"crp0_v1"+outname_option)
+
+    plot_ev.plot_waveform_evo([wvf_raw_crp1_v0, wvf_fft_crp1_v0, wvf_coh_crp1_v0], ['raw','fft','coh'], ['black','cyan','orange'],"crp1_v0"+outname_option)
+    plot_ev.plot_waveform_evo([wvf_raw_crp1_v1, wvf_fft_crp1_v1, wvf_coh_crp1_v1], ['raw','fft','coh'], ['black','cyan','orange'],"crp1_v1"+outname_option)
+    """
+
+
+    print(" time to coh filt %.2f"%( time.time() - t3))
 
     t4 = time.time()
 
     """ Update ROI regions """
-    noise.define_ROI(signal_thresh, 2)
+    noise.define_ROI(signal_thresh_2, 2)
     print(" time to ROI %.2f"%(time.time() - t4))
 
     """ final pedestal mean and rms """
@@ -202,8 +242,6 @@ for ievent in range(nevent):
         crp, view, ch = dc.map_ped[i].get_ana_chan()
         if(crp >= cf.n_CRPUsed): continue
         dc.map_ped[i].set_evt_pedestal(dc.ped_mean[crp,view,ch], dc.ped_rms[crp,view,ch])
-
-
 
 
 
@@ -218,29 +256,34 @@ for ievent in range(nevent):
     hf.hit_finder(5, 10, 10, 3., 4.)
 
     print(" time to Hit Search %.3f"%(time.time() - t6))
-
+    #plot_ev.plot_waveform_hits(0,1,750)
+    #plot_ev.plot_waveform_hits(1,0,100)
     
     t7 = time.time()
 
     
     """ 1st search for most of the tracks"""
     """parameters : eps, min pts, y axis squeeze"""
-    clus.dbscan(20, 15, 0.1)
+    clus.dbscan(20, 15, 0.05)
 
     """2nd search for vertical tracks not yet clustered """
-    clus.dbscan(30, 5, 0.1)
+    clus.dbscan(30, 5, 0.05)
 
     print("time to cluster %.3f"%(time.time()-t7)) 
 
     #plot_ev.plot_hits_clustered()
     #plot_ev.plot_hits_var()
-    #plot_ev.plot_event_display("filt")
+    #plot_ev.plot_event_display("filt_fft0.06")
     #plot_ev.plot_hits_view()
 
     t8 = time.time()
 
     """parameters : min nb hits, rcut, chi2cut, y error, slope error, pbeta"""
-    trk2d.find_tracks(4, 6., 12., 0.3125, 1., 3.)
+    trk2d.find_tracks(10, 6., 8., 0.3125, 1., 3., 1)
+
+    """parameters : min nb hits, rcut, chi2cut, y error, slope error, pbeta"""
+    trk2d.find_tracks(4, 2., 12., 0.3125, 1., 3., 2)
+
 
     t9 = time.time()
     print("time to find tracks %.3f"%(t9-t8))
@@ -249,7 +292,7 @@ for ievent in range(nevent):
 
     tst = time.time()
     """ parameters are : min distance in between 2 tracks end points, slope error tolerance, extrapolated distance tolerance"""
-    trk2d.stitch_tracks(30., 3., 5.)
+    trk2d.stitch_tracks(50., 3., 5.)
     print("time to stitch tracks %.3f"%(time.time()-tst))
 
 
@@ -259,9 +302,12 @@ for ievent in range(nevent):
 
     t3d = time.time()
     """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance """
-    trk3d.find_tracks(3., 0.25)
+    trk3d.find_tracks(8., 0.25)
     print("Time build 3D tracks ", time.time() - t3d)
-    plot_ev.plot_tracks3D()
+
+    #plot_ev.plot_tracks3D_proj()
+    #plot_ev.plot_tracks3D()
+
     dc.evt_list[-1].dump_reco()    
 
 
@@ -278,7 +324,20 @@ for ievent in range(nevent):
     ped_fin = noise.get_RMS(npalldata*mask)
     plot_ev.plot_pedestal([ped_ref, ped_ini, ped_fin], ['Ref.', 'Raw', 'Final'],['r','k','b'])
     """
+#plot_ev.plot_event_fft(ps_avg, zmax=1.25, option="all")
+#plot_ev.plot_event_fft(ps_avg, zmax=0.25, option="zoom")
 
+"""
+ps_avg = np.reshape(ps_avg, (2, 2, 15, 64, 5001))
+ps_avg = np.einsum('ijklm->ijkm', ps_avg)/64.#ps_avg.sum(axis=3)
+
+
+for icrp in range(2):
+    for iview in range(2):
+        np.savetxt("fft/"+run_n + "_" + evt_file +"_fft_f_crp"+str(icrp)+"_v"+str(iview)+".txt",ps_avg[icrp,iview,:,:], delimiter=',')
+
+plot_ev.plot_event_fft(ps_avg, zmax=0.2, option="zoom_avg")
+"""
 data.close()
 output.close()
 tottime = time.time() - tstart

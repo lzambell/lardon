@@ -146,6 +146,9 @@ class hits:
     cluster = -1
     X       = -1
     Z       = -1
+    matched = -1
+
+
     def __init__(self, crp, view, channel, start, stop, charge, max_t, max_adc):
         self.crp     = crp
         self.view    = view
@@ -158,6 +161,8 @@ class hits:
         self.cluster = -1 #cluster
         self.X       = -1
         self.Z       = -1
+        self.matched = -1
+
 
     def __lt__(self,other):
         #"""sort hits by increasing channel and increasing Z"""
@@ -176,6 +181,9 @@ class hits:
         self.charge *= cf.n_Sampling 
         self.charge /= cf.ADCtofC
 
+    def set_match(self, ID):
+        self.matched=ID
+
 class trk2D:
     ini_crp = -1
     end_crp = -1
@@ -192,7 +200,9 @@ class trk2D:
     dQ      = []
     chi2    = -1
     matched = -1
-    def __init__(self, ini_crp, view, ini_slope, ini_slope_err, x0, y0, q0, chi2):
+    cluster = -1
+
+    def __init__(self, ini_crp, view, ini_slope, ini_slope_err, x0, y0, q0, chi2, cluster):
         self.ini_crp = ini_crp
         self.end_crp = ini_crp
         self.view    = view
@@ -209,13 +219,25 @@ class trk2D:
         self.len_straight = 0.
         self.len_path = 0.
         self.matched = -1
-
+        self.cluster = cluster
+        
     def __lt__(self,other):
         """ sort tracks by decreasing Z and increasing channel """
         return (self.path[0][1] > other.path[0][1]) or (self.path[0][1] == other.path[0][1] and self.path[0][0] < other.path[0][0])
 
 
-    def add_hit(self, slope, slope_err, x, y, q, chi2):
+    def add_hit(self, x, y, q):
+        self.nHits += 1
+        self.len_path += math.sqrt( pow(self.path[-1][0]-x, 2) + pow(self.path[-1][1]-y,2) )
+        #beware to append (x,y) after !
+        self.path.append((x,y))
+        self.dQ.append(q)
+        self.tot_charge += q
+        self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1], 2) )
+
+
+
+    def add_hit_update(self, slope, slope_err, x, y, q, chi2):
         self.end_slope = slope
         self.end_slope_err = slope_err
         self.nHits += 1
@@ -226,7 +248,7 @@ class trk2D:
         self.chi2 = chi2
         self.tot_charge += q
         self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1], 2) )
-
+        
 
     def dist(self, other):
         return math.sqrt(pow( self.path[-1][0] - other.path[0][0], 2) + pow(self.path[-1][1] - other.path[0][1], 2))
@@ -234,16 +256,30 @@ class trk2D:
     def slope_comp(self, other, sigcut):
         return (math.fabs( self.end_slope - other.ini_slope) < (sigcut*self.end_slope_err + sigcut*other.ini_slope_err))
 
-    def extrapolate(self, other, rcut):
+    def x_extrapolate(self, other, rcut):
         xa, za = self.path[-1][0], self.path[-1][1]
         xb, zb = other.path[0][0], other.path[0][1]
 
         return ( math.fabs( xb - (xa+(zb-za)*self.end_slope)) < rcut) and (math.fabs( xa-(xb+(za-zb)*other.ini_slope)) < rcut)
 
+    def z_extrapolate(self, other, rcut):
+        xa, za = self.path[-1][0], self.path[-1][1]
+        xb, zb = other.path[0][0], other.path[0][1]
+        if(self.end_slope == 0 and other.ini_slope == 0) : 
+            return True
+
+        if(self.end_slope == 0):
+            return (math.fabs(za - zb - (xa-xb)/other.ini_slope) < rcut)
+        elif( other.ini_slope == 0):
+            return ( math.fabs(zb - za - (xb-xa)/self.end_slope) < rcut)
+        else:
+            return ( math.fabs(zb - za - (xb-xa)/self.end_slope) < rcut) and (math.fabs(za - zb - (xa-xb)/other.ini_slope) < rcut)
+
+
     def joinable(self, other, dcut, sigcut, rcut):
         if(self.view != other.view): 
             return False
-        if( self.dist(other) < dcut and self.slope_comp(other, sigcut) == True and self.extrapolate(other, rcut)):            
+        if( self.dist(other) < dcut and self.slope_comp(other, sigcut) == True and self.x_extrapolate(other, rcut) and self.z_extrapolate(other, rcut)):            
             return True
 
 
@@ -285,41 +321,6 @@ class trk2D:
                
 
 class trk3D:
-    ini_crp = -1
-    end_crp = -1
-
-    ini_x = -1
-    ini_y = -1
-    ini_z = -1
-
-    end_x = -1
-    end_y = -1
-    end_z = -1
-
-    len_straight_v0 = -1
-    len_straight_v1 = -1
-
-    len_path_v0 = -1
-    len_path_v1 = -1
-
-    tot_charge_v0 = -1
-
-    chi2 = -1
-    momentum = -1
-    
-    nHits_v0 = -1
-    nHits_v1 = -1
-
-    path_v0 = []
-    path_v1 = []
-    dQds_v0 = []
-    dQds_v1 = []
-
-    ini_theta = -1
-    end_theta = -1
-    ini_phi   = -1
-    end_phi   = -1
-
     def __init__(self, tv0, tv1):
         tv0.matched = evt_list[-1].nTracks3D
         tv1.matched = evt_list[-1].nTracks3D
