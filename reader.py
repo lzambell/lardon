@@ -169,6 +169,7 @@ for ievent in range(nevent):
     """
 
     tfft = time.time()
+
     ps = noise.FFTLowPass(lowpasscut, freqlines)
 
     """
@@ -179,6 +180,10 @@ for ievent in range(nevent):
     """
 
     #plot_ev.plot_event_display("fft"+outname_option)
+
+    
+    #noise.FFT2D()
+
 
     """
     wvf_fft_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
@@ -203,6 +208,7 @@ for ievent in range(nevent):
 
 
     """Apply coherent filter(s) """
+
     noise.coherent_filter(coherent_groups)
 
     """
@@ -219,6 +225,7 @@ for ievent in range(nevent):
     plot_ev.plot_waveform_evo([wvf_raw_crp1_v0, wvf_fft_crp1_v0, wvf_coh_crp1_v0], ['raw','fft','coh'], ['black','cyan','orange'],"crp1_v0"+outname_option)
     plot_ev.plot_waveform_evo([wvf_raw_crp1_v1, wvf_fft_crp1_v1, wvf_coh_crp1_v1], ['raw','fft','coh'], ['black','cyan','orange'],"crp1_v1"+outname_option)
     """
+
 
     print(" time to coh filt %.2f"%( time.time() - t3))
 
@@ -281,7 +288,7 @@ for ievent in range(nevent):
     t9 = time.time()
     print("time to find tracks %.3f"%(t9-t8))
 
-    #plot_ev.plot_tracks2D("raw")
+    plot_ev.plot_tracks2D("raw")
 
     tst = time.time()
     """ parameters are : min distance in between 2 tracks end points, slope error tolerance, extrapolated distance tolerance"""
@@ -297,8 +304,10 @@ for ievent in range(nevent):
     """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance """
     trk3d.find_tracks(8., 0.25)
     print("Time build 3D tracks ", time.time() - t3d)
+
     #plot_ev.plot_tracks3D_proj()
     #plot_ev.plot_tracks3D()
+
     dc.evt_list[-1].dump_reco()    
 
 

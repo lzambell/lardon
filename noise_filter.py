@@ -4,6 +4,7 @@ import data_containers as dc
 import numpy as np
 import numexpr as ne 
 import numba as nb
+import time
 
 from sklearn import linear_model
 import cmath
@@ -154,6 +155,105 @@ def FFTLowPass(lowpass, freqlines) :
     """go back to time"""
     dc.data = np.fft.irfft(fdata)
 
+
     """get power spectrum after cut"""
     ps = 10.*np.log10(np.abs(fdata)+1e-1) 
     return ps
+
+    
+def FFT2D() :
+    
+	for icrp in range(2):
+		for iview in range(2):
+		
+			"""go to the 2D frequency domain"""
+			fft2D=np.fft.fft2(dc.data[icrp,iview,:,:])
+		
+    
+			'''x = np.linspace(0, 10000, 10000 )
+			y = np.linspace(0, 960, 960)
+			X, Y = np.meshgrid(x, y)'''
+			gmask = np.ones((960,10000))
+			
+			"""Low Pass filter"""
+			for i in range(960):
+				gmask[i][400:9600]=0.
+			t=time.time()
+			"""Removing specific frequencies (different for each view and crp)"""
+			if icrp==0 and iview==0:			
+				for i in range(5):
+					gmask[i][20:9980]=0
+					gmask[959-i][20:9980]=0
+				for i in range(13):
+            				gmask[i][86:100]=0
+            				gmask[i][9900:9913]=0
+            				gmask[959-i][86:100]=0
+            				gmask[959-i][9900:9913]=0
+				for i in range(40):
+            				gmask[i][91:96]=0
+            				gmask[i][9905:9909]=0
+            				gmask[959-i][91:96]=0
+            				gmask[959-i][9905:9909]=0
+            				gmask[i][249:251]=0
+            				gmask[i][9749:9751]=0
+            				gmask[959-i][249:251]=0
+            				gmask[959-i][9749:9751]=0
+				for i in range(100):
+            				gmask[i][280:282]=0
+            				gmask[i][9718:9721]=0
+            				gmask[959-i][280:282]=0
+            				gmask[959-i][9718:9721]=0
+				for i in range(40,920):
+            				gmask[i][92:95]=0
+            				gmask[i][9906:9908]=0
+				for i in range(3):
+            				gmask[i][:]=0
+            				gmask[959-i][:]=0
+			
+			if icrp==0 and iview==1:
+				for i in range(5):
+            				gmask[i][20:9980]=0
+            				gmask[959-i][20:9980]=0
+				for i in range(30):
+					gmask[i][92:95]=0
+					gmask[i][9906:9908]=0
+					gmask[959-i][92:95]=0
+					gmask[959-i][9906:9908]=0
+				for i in range(2):
+					gmask[i][:]=0
+					gmask[959-i][:]=0
+			if icrp==1 and iview==0:
+				for i in range(5):
+					gmask[i][20:9980]=0
+					gmask[959-i][20:9980]=0
+				for i in range(30):
+					gmask[i][92:95]=0
+					gmask[i][9906:9908]=0
+					gmask[959-i][92:95]=0
+					gmask[959-i][9906:9908]=0
+				for i in range(2):
+					gmask[i][:]=0
+					gmask[959-i][:]=0
+			if icrp==1 and iview==1:
+				for i in range(5):
+					gmask[i][20:9980]=0
+					gmask[959-i][20:9980]=0
+				for i in range(30):
+					gmask[i][92:95]=0
+					gmask[i][9906:9908]=0
+					gmask[959-i][92:95]=0
+					gmask[959-i][9906:9908]=0
+				for i in range(2):
+					gmask[i][:]=0
+					gmask[959-i][:]=0
+			
+		
+			#gmask = np.where(gmask<0,0,gmask)
+			"""Apply the cuts"""
+			fft2D = fft2D * gmask
+			"""Go back in real space"""
+			filt = np.fft.ifft2(fft2D).real
+			dc.data[icrp,iview,:,:] = filt
+			print("Time to FFT2D: "+str(time.time()-t))
+		
+	#return data #fft2D to see 2D frequency domain
