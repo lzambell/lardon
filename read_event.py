@@ -81,7 +81,7 @@ def shape_and_store(data_raw, vread):
         crp, view, vch = dc.map_ped[idq+shift].get_ana_chan()
 
         if(view != vread): continue
-        #if(crp > 1): continue #Do not care about CRP 2 & 3 ATM
+        if(crp >= cf.n_CRPUsed): continue 
         pedval = dc.map_ped[idq+shift].ref_ped 
 
         if(crp < 0 or view < 0 or vch < 0):

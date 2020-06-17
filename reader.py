@@ -120,6 +120,7 @@ for ibrok in cf.daq_broken_channels:
 
 
 for crp, view, vch in cf.crp_broken_channels:
+    if(crp >= cf.n_CRPUsed): continue
     dc.alive_chan[crp, view, vch, : ] = False
 
 
