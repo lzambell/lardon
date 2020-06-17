@@ -258,6 +258,8 @@ def find_tracks(min_hits, rcut, chicut, y_err, slope_err, pbeta, matchID):
     
 
 def finalize_tracks(chicut, y_err, slope_err, pbeta):
+    #WORK IN PROGRESS#
+
     """error on y axis, error on slope, pbeta hyp"""
     filt = pf.PFilter(y_err, slope_err, pbeta)
 
@@ -275,11 +277,9 @@ def finalize_tracks(chicut, y_err, slope_err, pbeta):
                 visited = np.zeros((nHits),dtype=bool)
                 X = np.asarray([[x.X,x.Z] for x in hits])
 
-                
-
                 """build the NN Tree"""
                 tree = spatial.cKDTree(X)
-
+                
 
 
 def stitch_tracks(dist_min, slope_err, r_extrapol_min):

@@ -48,8 +48,8 @@ light_blue_red_dict = {
 }
 lbr_cmp = LinearSegmentedColormap('lightBR', light_blue_red_dict)
 
-adcmin = -10
-adcmax = 35
+adcmin = -5#10
+adcmax = 5#10 #35
 
 
 def plot_waveform(data, legtitle, colors, option=None):
@@ -94,6 +94,7 @@ def plot_waveform_evo(data, legtitle, colors, option=None):
     nstep = len(data)
     if(nplot > 9):
         print(" ooops, I will only plot 9 waveforms")
+        nplot = 9
 
     fig = plt.figure(figsize=(12,9))
     ax = []
@@ -128,7 +129,7 @@ def plot_waveform_evo(data, legtitle, colors, option=None):
 
 
 
-def plot_waveform_hits(crp, view, channel, option=None):
+def plot_waveform_hits(crp, view, channel, nsig, option=None):
 
     fig = plt.figure(figsize=(12,3))
     ax = []
@@ -138,8 +139,21 @@ def plot_waveform_hits(crp, view, channel, option=None):
     hit_stop = [x.stop for x in dc.hits_list if x.view == view and x.crp == crp and x.channel == channel]
 
     plt.plot(tdc, wvf, c='black')
+    pedmean = dc.ped_mean[crp, view, channel]
+    pedrms = dc.ped_rms[crp, view, channel]
+    thr = nsig * pedrms
+    
+    plt.plot([0,10000],[thr,thr], linestyle="--", color="red")
+    
+
     for f, t in zip(hit_start, hit_stop):
         plt.plot(tdc[f:t+1], wvf[f:t+1], marker=".")
+
+
+    plt.plot([0,10000],[pedmean,pedmean], color="cyan")
+    plt.plot([0,10000],[pedmean+pedrms, pedmean+pedrms], linestyle="dotted", color="cyan")
+    plt.plot([0,10000],[pedmean-pedrms, pedmean-pedrms], linestyle="dotted", color="cyan")
+
 
     if(option):
         option = "_"+option
@@ -152,7 +166,7 @@ def plot_waveform_hits(crp, view, channel, option=None):
 
 
     plt.savefig('ED/waveform_hits'+option+'_run_'+run_nb+'_evt_'+evt_nb+'_crp'+str(crp)+'_v'+str(view)+'_ch'+str(channel)+'.png')
-    plt.show()
+    #plt.show()
     plt.close()    
 
 
@@ -186,6 +200,43 @@ def plot_event_display(option=None):
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
     plt.savefig('ED/ed'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+
+    #plt.show()
+    plt.close()
+
+
+
+def plot_event_display_allcrp(option=None):    
+
+    fig = plt.figure(figsize=(12,9))
+    #gs = gridspec.GridSpec(nrows=2, ncols=3, wi_ratios=[1,10])
+    ax = []
+    im = []
+    iplot = 0
+
+    for icrp in range(4):
+        if(icrp == 2): continue
+        for iview in range(2):
+            iplot = iplot + 1
+            ax.append(fig.add_subplot(3,2,iplot))
+            im.append(plt.imshow(dc.data[icrp,iview,:,:].transpose(), origin='lower',aspect='auto',cmap=lbr_cmp, vmin=adcmin, vmax=adcmax))
+            plt.colorbar(im[-1])
+
+            ax[-1].set_xlabel('View Channel')
+            ax[-1].set_ylabel('Time')
+            ax[-1].set_title('CRP '+str(icrp)+' - View '+str(iview))    
+
+    plt.subplots_adjust(bottom=0.08, top=0.95, hspace=0.4)
+
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+
+    run_nb = str(dc.evt_list[-1].run_nb)
+    evt_nb = str(dc.evt_list[-1].evt_nb_glob)
+
+    plt.savefig('ED/ed_allcrp'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
 
     #plt.show()
     plt.close()
@@ -278,6 +329,7 @@ def plot_event_fft(data, zmax=1.25, option=None):
     plt.close()
 
 
+
     
 def plot_hits_clustered(option=None):
 
@@ -285,13 +337,14 @@ def plot_hits_clustered(option=None):
     ax  = []
     iplot=0
 
-    for icrp in range(2):
+    for icrp in range(4):
+        if(icrp==2): continue
         for iview in range(2):
             iplot += 1
-            ax.append(fig.add_subplot(2,2,iplot))
+            ax.append(fig.add_subplot(3,2,iplot))
             
-            hit_pos = [x.channel for x in dc.hits_list if x.view == iview and x.crp == icrp]
-            hit_tdc = [x.max_t for x in dc.hits_list if x.view == iview and x.crp == icrp]
+            hit_pos = [x.X for x in dc.hits_list if x.view == iview and x.crp == icrp]
+            hit_tdc = [x.Z for x in dc.hits_list if x.view == iview and x.crp == icrp]
             hit_cls = [x.cluster for x in dc.hits_list if x.view == iview and x.crp == icrp]
 
             
@@ -307,15 +360,15 @@ def plot_hits_clustered(option=None):
             
             ax[-1].scatter(hit_pos, hit_tdc, c=colors[hit_cls],s=2)
             
-            ax[-1].set_xlim(0,959)
-            ax[-1].set_ylim(0,9999)
-            ax[-1].set_xlabel('View Channel')
-            ax[-1].set_ylabel('Time')
+            #ax[-1].set_xlim(0,959)
+            ax[-1].set_ylim(-30, 300)
+            ax[-1].set_xlabel('Position [cm]')
+            ax[-1].set_ylabel('Z [cm]')
             ax[-1].set_title('CRP '+str(icrp)+' - View '+str(iview))    
             
             print("CRP ", icrp, " View ", iview, " -> Nhits : ", len(hit_tdc))
 
-    plt.subplots_adjust(bottom=0.08, top=0.95, hspace=0.3)
+    plt.subplots_adjust(bottom=0.08, top=0.95, hspace=0.4)
     if(option):
         option = "_"+option
     else:
@@ -327,7 +380,7 @@ def plot_hits_clustered(option=None):
 
 
     plt.savefig('ED/hit'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
-    #plt.show()
+    plt.show()
     plt.close()
 
 
@@ -388,11 +441,11 @@ def plot_hits_var(option=None):
 def plot_hits_view(option=None):
 
     fig = plt.figure(figsize=(12,6))
-    gs = gridspec.GridSpec(nrows=2, ncols=3, height_ratios=[1,10])
+    gs = gridspec.GridSpec(nrows=2, ncols=2, height_ratios=[1,10], width_ratios=[6,4])
 
     ax_col = fig.add_subplot(gs[0,:])
-    ax_v0 = fig.add_subplot(gs[1, 0:2])
-    ax_v1 = fig.add_subplot(gs[1, 2], sharey=ax_v0)
+    ax_v0 = fig.add_subplot(gs[1, 0])
+    ax_v1 = fig.add_subplot(gs[1, 1], sharey=ax_v0)
 
     max_adc_range=50
     hit_x_v0 = [x.X for x in dc.hits_list if x.view == 0]
@@ -408,15 +461,15 @@ def plot_hits_view(option=None):
 
     ax_v0.set_title('View 0')
     ax_v0.set_ylabel('Z [cm]')
-    ax_v0.set_xlabel('Y [cm]')
+    ax_v0.set_xlabel('X [cm]')
     ax_v0.set_xlim([-300., 300])
     ax_v0.set_ylim([-30., 300])
 
     sc1 = ax_v1.scatter(hit_x_v1, hit_z_v1, c=hit_q_v1, cmap=lbr_cmp, s=2,vmin=0,vmax=max_adc_range)
     ax_v1.set_title('View 1')
     #ax_v1.set_ylabel('Z [cm]')
-    ax_v1.set_xlabel('X [cm]')
-    ax_v1.set_xlim([0,300])
+    ax_v1.set_xlabel('Y [cm]')
+    ax_v1.set_xlim([-100,300])
     ax_v1.set_ylim([-30., 300])
     ax_col.set_title('Hit Max ADC')
     cb = fig.colorbar(sc1, cax=ax_col, orientation='horizontal')
@@ -440,11 +493,11 @@ def plot_hits_view(option=None):
 def plot_tracks2D(option=None):
 
     fig = plt.figure(figsize=(12,6))
-    gs = gridspec.GridSpec(nrows=1, ncols=3)#, height_ratios=[1,10])
+    gs = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[6,4])#, height_ratios=[1,10])
 
     #ax_col = fig.add_subplot(gs[0,:])
-    ax_v0 = fig.add_subplot(gs[0, 0:2])
-    ax_v1 = fig.add_subplot(gs[0, 2], sharey=ax_v0)
+    ax_v0 = fig.add_subplot(gs[0, 0])
+    ax_v1 = fig.add_subplot(gs[0, 1], sharey=ax_v0)
 
     #max_adc_range=50
     hit_x_v0 = [x.X for x in dc.hits_list if x.view == 0]
@@ -497,7 +550,7 @@ def plot_tracks2D(option=None):
 
     ax_v0.set_title('View 0')
     ax_v0.set_ylabel('Z [cm]')
-    ax_v0.set_xlabel('Y [cm]')
+    ax_v0.set_xlabel('X [cm]')
     ax_v0.set_xlim([-300., 300])
     ax_v0.set_ylim([-30., 300])
 
@@ -514,8 +567,8 @@ def plot_tracks2D(option=None):
 
 
     ax_v1.set_title('View 1')
-    ax_v1.set_xlabel('X [cm]')
-    ax_v1.set_xlim([0,300])
+    ax_v1.set_xlabel('Y [cm]')
+    ax_v1.set_xlim([-100,300])
     ax_v1.set_ylim([-30., 300])
     
     if(option):
@@ -529,7 +582,7 @@ def plot_tracks2D(option=None):
 
 
     plt.savefig('ED/track2D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
-    plt.show()
+    #plt.show()
     plt.close()
 
 
@@ -577,7 +630,7 @@ def plot_track2D_var(option=None):
 def plot_tracks3D_proj(option=None):
 
     fig = plt.figure(figsize=(12,6))
-    gs = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[2,1])
+    gs = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[6,4])
 
     #ax_col = fig.add_subplot(gs[0,:])
     ax_v0 = fig.add_subplot(gs[0, 0])
@@ -624,7 +677,7 @@ def plot_tracks3D_proj(option=None):
 
     ax_v0.set_title('View 0')
     ax_v0.set_ylabel('Z [cm]')
-    ax_v0.set_xlabel('Y [cm]')
+    ax_v0.set_xlabel('X [cm]')
     ax_v0.set_xlim([-300., 300])
     ax_v0.set_ylim([-30., 300])
 
@@ -641,8 +694,8 @@ def plot_tracks3D_proj(option=None):
         ax_v1.plot(tx,tz, c="#00a9b2",linewidth=2)#f65789
 
     ax_v1.set_title('View 1')
-    ax_v1.set_xlabel('X [cm]')
-    ax_v1.set_xlim([0,300])
+    ax_v1.set_xlabel('Y [cm]')
+    ax_v1.set_xlim([-100,300])
     ax_v1.set_ylim([-30., 300])
     
     if(option):
@@ -656,7 +709,7 @@ def plot_tracks3D_proj(option=None):
 
 
     plt.savefig('ED/track3D_proj'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
-    plt.show()
+    #plt.show()
     plt.close()
 
 
@@ -700,3 +753,98 @@ def plot_tracks3D(option=None):
     plt.savefig('ED/track3D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     #plt.show()
     plt.close()
+
+
+
+def plot_correlations(data,option=None):
+
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+
+    run_nb = str(dc.evt_list[-1].run_nb)
+    evt_nb = str(dc.evt_list[-1].evt_nb_glob)
+
+
+
+    gs = gridspec.GridSpec(nrows=1, ncols=3)#, height_ratios=[1,5,5])
+    fig = plt.figure(figsize=(12,5))
+    ax = []
+    ax.append(fig.add_subplot(gs[0, 0]))
+    ax[-1].imshow(data, origin='lower',aspect='auto', cmap=lbr_cmp, vmin=-5,vmax=5,interpolation='none')
+
+    ax.append(fig.add_subplot(gs[0, 1]))
+    ax[-1].imshow(np.corrcoef(data), origin='lower',aspect='auto', cmap='coolwarm', vmin=-1,vmax=1,interpolation='none')
+
+    ax.append(fig.add_subplot(gs[0, 2]))
+    ax[-1].imshow(np.corrcoef(data.transpose()), origin='lower',aspect='auto', cmap='coolwarm', vmin=-1,vmax=1,interpolation='none')
+    plt.savefig('ED/micro_correlation_'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.close()
+
+
+def plot_correlations_all(option=None):
+
+    if(option):
+        option = "_"+option
+    else:
+        option = ""
+
+    run_nb = str(dc.evt_list[-1].run_nb)
+    evt_nb = str(dc.evt_list[-1].evt_nb_glob)
+
+
+
+    fig_t = plt.figure(1, figsize=(12,6))
+
+    alive_data = dc.data * dc.alive_chan
+    all_data_crp0 = np.concatenate((alive_data[0,0,:,:], alive_data[0,1,:,:]))
+    all_data_crp1 = np.concatenate((alive_data[1,0,:,:], alive_data[1,1,:,:]))
+
+    print("all data ", all_data_crp0.shape, " and ", all_data_crp1.shape)
+    
+    corr_t_crp0 = np.corrcoef(all_data_crp0)
+    corr_t_crp1 = np.corrcoef(all_data_crp1)
+
+    print("time corr  ", corr_t_crp0.shape, " and ", corr_t_crp1.shape)    
+
+    ax_t_0 = fig_t.add_subplot(121)
+    im0_c_t = ax_t_0.imshow(corr_t_crp0, origin='lower',aspect='auto', cmap='coolwarm',vmin=-1,vmax=1,interpolation='none')#,extent=[0,960,0,960])
+    cb0_c_t = plt.colorbar(im0_c_t,ax=ax_t_0)
+    ax_t_0.set_title('CRP 0')
+
+    ax_t_1 = fig_t.add_subplot(122)
+    im1_c_t = ax_t_1.imshow(corr_t_crp1, origin='lower',aspect='auto', cmap='coolwarm',vmin=-1,vmax=1,interpolation='none')#,extent=[0,960,0,960])
+    cb1_c_t = plt.colorbar(im1_c_t,ax=ax_t_1)
+    ax_t_1.set_title('CRP 1')
+
+    fig_t.savefig('ED/time_correlation'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    #plt.close(fig_t)
+
+    fig_s = plt.figure(2, figsize=(12,6))
+
+    all_data_crp0_tr = all_data_crp0.transpose()
+    all_data_crp1_tr = all_data_crp1.transpose()
+
+    print("transposed all data ", all_data_crp0_tr.shape, " and ", all_data_crp1_tr.shape)
+    
+    corr_s_crp0 = np.corrcoef(all_data_crp0_tr)
+    corr_s_crp1 = np.corrcoef(all_data_crp1_tr)
+
+    print("space corr  ", corr_s_crp0.shape, " and ", corr_s_crp1.shape)        
+
+    ax_s_0 = fig_s.add_subplot(121)
+    im0_c_s = ax_s_0.imshow(corr_s_crp0, origin='lower',aspect='auto', cmap='coolwarm',vmin=-1,vmax=1,interpolation='none')#,extent=[0,960,0,960])
+    cb0_c_s = plt.colorbar(im0_c_s,ax=ax_s_0)
+    ax_s_0.set_title('CRP 0')
+
+    ax_s_1 = fig_s.add_subplot(122)
+    im1_c_s = ax_s_1.imshow(corr_s_crp1, origin='lower',aspect='auto', cmap='coolwarm',vmin=-1,vmax=1,interpolation='none')#,extent=[0,960,0,960])
+    cb1_c_s = plt.colorbar(im1_c_s,ax=ax_s_1)
+    ax_s_1.set_title('CRP 1')
+
+
+    fig_s.savefig('ED/space_correlation'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+
+
+    plt.close('all')

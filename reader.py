@@ -45,7 +45,7 @@ freqlines        = []#0.0234, 0.0625, 0.0700] #in MHz
 signal_thresh    = 4.
 signal_thresh_2  = 2.5
 adc_thresh       = 6.
-coherent_groups  = [64, 32, 8]
+coherent_groups  = [64,32,8]
 outname_option = ""
 
 nevent = -1 
@@ -91,7 +91,7 @@ run_nb, nb_evt = np.fromfile(data, dtype='<u4', count=2)
 cmap.ChannelMapper()
 
 """ Get Reference Pedestals """
-ped.MapRefPedestal(run_nb)
+ped.map_reference_pedestal(run_nb)
 
 
 if(nevent > nb_evt or nevent < 0):
@@ -143,15 +143,19 @@ for ievent in range(nevent):
 
     print(" -> Reading time %.2f s"%( tevtdata - tevtread))
 
-    #plot_ev.plot_event_display("raw")
+    plot_ev.plot_event_display("raw")
 
     if(run_nb <= cf.run_inv_signal):
         dc.data *= -1.    
+    
+    elif(cf.n_CRPUsed > 2):
+        #should ask dario if this is fixed and if so, when
+        dc.data[3,:,:,:] *= -1.
 
     t_ped_raw = time.time()
 
-    noise.compute_pedestal_mean()
-    noise.compute_pedestal_RMS()
+    ped.compute_pedestal_mean()
+    ped.compute_pedestal_RMS()
 
     for i in range(cf.n_ChanTot):
         crp, view, ch = dc.map_ped[i].get_ana_chan()
@@ -160,6 +164,11 @@ for ievent in range(nevent):
     
 
     print("time to compute pedestals : %.3f s"%(time.time() - t_ped_raw))
+
+
+    #plot_ev.plot_correlations(1,1,"raw")
+    #plot_ev.plot_correlations(1,0,"raw")
+    #plot_ev.plot_event_display_allcrp("raw")
 
     """
     wvf_raw_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
@@ -170,8 +179,8 @@ for ievent in range(nevent):
 
     tfft = time.time()
 
-    ps = noise.FFTLowPass(lowpasscut, freqlines)
-
+    #ps = 
+    noise.FFTLowPass(lowpasscut, freqlines)
     """
     if(ievent==0):
         ps_avg = ps/nevent #noise.FFTLowPass(lowpasscut, freqlines)/nevent
@@ -179,10 +188,8 @@ for ievent in range(nevent):
         ps_avg += ps/nevent #noise.FFTLowPass(lowpasscut, freqlines)/nevent
     """
 
-    #plot_ev.plot_event_display("fft"+outname_option)
-
-    
     #noise.FFT2D()
+
 
 
     """
@@ -211,6 +218,17 @@ for ievent in range(nevent):
 
     noise.coherent_filter(coherent_groups)
 
+
+    """
+    for i in range(6):
+        ich_start = i*160
+        ich_stop  = (i+1)*160
+        plot_ev.plot_correlations(dc.data[0,0,ich_start:ich_stop,:],"micro_crp0_v0_ch"+str(ich_start)+"_"+str(ich_stop))
+        plot_ev.plot_correlations(dc.data[0,1,ich_start:ich_stop,:],"micro_crp0_v1_ch"+str(ich_start)+"_"+str(ich_stop))
+        plot_ev.plot_correlations(dc.data[1,0,ich_start:ich_stop,:],"micro_crp1_v0_ch"+str(ich_start)+"_"+str(ich_stop))
+        plot_ev.plot_correlations(dc.data[1,1,ich_start:ich_stop,:],"micro_crp1_v1_ch"+str(ich_start)+"_"+str(ich_stop))
+    """
+
     """
     wvf_coh_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
     wvf_coh_crp0_v1 = [dc.data[0,1,100,:].copy(), dc.data[0,1,400,:].copy(), dc.data[0,1,850,:].copy()]
@@ -236,8 +254,9 @@ for ievent in range(nevent):
     print(" time to ROI %.2f"%(time.time() - t4))
 
     """ final pedestal mean and rms """
-    noise.compute_pedestal_mean()
-    noise.compute_pedestal_RMS()
+    ped.compute_pedestal_mean()
+    ped.compute_pedestal_RMS()
+
     for i in range(cf.n_ChanTot):
         crp, view, ch = dc.map_ped[i].get_ana_chan()
         if(crp >= cf.n_CRPUsed): continue
@@ -253,27 +272,24 @@ for ievent in range(nevent):
     t6 = time.time()
 
     """ parameters : pad left (n ticks) pad right (n ticks), min dt, thr1, thr2 """
-    hf.hit_finder(5, 10, 10, 3., 4.)
+    hf.hit_finder(5, 10, 20, 3., 6.)
 
     print(" time to Hit Search %.3f"%(time.time() - t6))
-    #plot_ev.plot_waveform_hits(0,1,750)
-    #plot_ev.plot_waveform_hits(1,0,100)
     
     t7 = time.time()
 
     
     """ 1st search for most of the tracks"""
-    """parameters : eps, min pts, y axis squeeze"""
-    clus.dbscan(20, 15, 0.05)
+    """parameters : eps (cm), min pts, y axis squeeze"""
+    #to myself, was (20,15,0.05)
+    clus.dbscan(10, 10, 1.)
 
     """2nd search for vertical tracks not yet clustered """
-    clus.dbscan(30, 5, 0.05)
+    #clus.dbscan(30, 5, 0.05)
 
     print("time to cluster %.3f"%(time.time()-t7)) 
 
     #plot_ev.plot_hits_clustered()
-    #plot_ev.plot_hits_var()
-    #plot_ev.plot_event_display("filt_fft0.06")
     #plot_ev.plot_hits_view()
 
     t8 = time.time()
@@ -288,7 +304,6 @@ for ievent in range(nevent):
     t9 = time.time()
     print("time to find tracks %.3f"%(t9-t8))
 
-    plot_ev.plot_tracks2D("raw")
 
     tst = time.time()
     """ parameters are : min distance in between 2 tracks end points, slope error tolerance, extrapolated distance tolerance"""
@@ -297,20 +312,19 @@ for ievent in range(nevent):
 
 
 
-    #plot_ev.plot_tracks2D("stitch")
-    #plot_ev.plot_track2D_var()
+    #plot_ev.plot_tracks2D()
 
     t3d = time.time()
     """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance """
     trk3d.find_tracks(8., 0.25)
-    print("Time build 3D tracks ", time.time() - t3d)
+    print("Time build 3D tracks %.3f"%(time.time() - t3d))
 
     #plot_ev.plot_tracks3D_proj()
     #plot_ev.plot_tracks3D()
 
     dc.evt_list[-1].dump_reco()    
 
-
+    tstore = time.time()
     gr = store.new_event(output, ievent)
 
     store.store_event(output, gr)
@@ -318,27 +332,22 @@ for ievent in range(nevent):
     store.store_hits(output, gr)
     store.store_tracks2D(output, gr)
     store.store_tracks3D(output, gr)
+    print("time to store %.3f"%(time.time()-tstore))
 
-
-    """
-    ped_fin = noise.get_RMS(npalldata*mask)
-    plot_ev.plot_pedestal([ped_ref, ped_ini, ped_fin], ['Ref.', 'Raw', 'Final'],['r','k','b'])
-    """
-#plot_ev.plot_event_fft(ps_avg, zmax=1.25, option="all")
-#plot_ev.plot_event_fft(ps_avg, zmax=0.25, option="zoom")
 
 """
 ps_avg = np.reshape(ps_avg, (2, 2, 15, 64, 5001))
 ps_avg = np.einsum('ijklm->ijkm', ps_avg)/64.#ps_avg.sum(axis=3)
+plot_ev.plot_event_fft(ps_avg, zmax=1.25, option="all")
+plot_ev.plot_event_fft(ps_avg, zmax=0.25, option="zoom")
 
 
 for icrp in range(2):
     for iview in range(2):
         np.savetxt("fft/"+run_n + "_" + evt_file +"_fft_f_crp"+str(icrp)+"_v"+str(iview)+".txt",ps_avg[icrp,iview,:,:], delimiter=',')
-
-plot_ev.plot_event_fft(ps_avg, zmax=0.2, option="zoom_avg")
 """
+
 data.close()
 output.close()
 tottime = time.time() - tstart
-print(" TOTAL RUNNING TIME %.2f s == %.2f evt/s"% (tottime, tottime/nevent))
+print(" TOTAL RUNNING TIME %.2f s == %.2f s/evt"% (tottime, tottime/nevent))

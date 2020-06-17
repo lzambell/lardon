@@ -2,20 +2,52 @@ import config as cf
 import data_containers as dc
 import glob 
 
-"""
-def dump(i):
-    print(" DAQCH ", i)
-    print(" CRP ", cf.reference[i].crp, " VIEW ", cf.reference[i].view, " CH ", cf.reference[i].vchan)
-    print(" ped = ", cf.reference[i].ped, " +/- ", cf.reference[i].rms)
-"""
+import numba as nb
+import numpy as np
+
+@nb.jit(nopython = True)
+def compute_pedestal_RMS_nb(data, mask):
+    """ do not remove the @jit above, the code would then take ~40 s to run """
+    shape = data.shape
+    
+    res   = np.zeros(shape[:-1])
+    for idx,v in np.ndenumerate(res):
+        ch = data[idx]
+        ma  = mask[idx]
+        """ use the assumed mean method """
+        K = ch[0]
+        n, Ex, Ex2, = 0., 0., 0.
+        for x,v in zip(ch,ma):
+            if(v == True):
+                n += 1
+                Ex += x -K
+                Ex2 += (x-K)*(x-K)
+        res[idx] = -1. if n == 0 else np.sqrt((Ex2 - (Ex*Ex)/n)/(n-1))
+    return res
+
+
+
+def compute_pedestal_RMS():
+    """ the numpy way is slower and cannot handle well dead channels """
+    #dc.ped_rms =  np.std(dc.data[dc.mask], axis=3)
+    dc.ped_rms = compute_pedestal_RMS_nb(dc.data, dc.mask)
+
+def compute_pedestal_mean():
+    """ the numpy way may be faster but do not handle dead channels """
+    #dc.ped_mean = np.mean(dc.data[dc.mask], axis=3)
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        dc.ped_mean = np.einsum('ijkl,ijkl->ijk', dc.data, dc.mask)/dc.mask.sum(axis=3)
+        """require at least 3 points to take into account the mean"""
+        dc.ped_mean[dc.mask.sum(axis=3) < 3] = -999.
 
 
 
 
-def GetRefPed(i):
+def get_reference_ped_mean(i):
     return dc.map_ped[i].ref_ped
 
-def GetRefPedRMS(i):
+def get_reference_ped_RMS(i):
     return dc.map_ped[i].ref_rms
 
 def get_closest_ped_run(run):
@@ -32,7 +64,7 @@ def get_closest_ped_run(run):
                 return calib_runs[irun]
     return calib_runs[0] #in case of problems
 
-def MapRefPedestal(run):
+def map_reference_pedestal(run):
     reference_file = get_closest_ped_run(run)
     print("Will use calibration run : ", reference_file)
 

@@ -137,10 +137,12 @@ def find_tracks(ztol, qfrac):
                 continue
             track.set_view1(l, t, q)
 
+            """
             print("OK !! -> ", mindist)
             print("V0 (%.1f, %.1f, %.1f) -> (%.1f, %.1f, %.1f)"% (track.path_v0[0][0],track.path_v0[0][1], track.path_v0[0][2], track.path_v0[-1][0] , track.path_v0[-1][1] , track.path_v0[-1][2] ))
             print("V1 (%.1f, %.1f, %.1f) -> (%.1f, %.1f, %.1f)"% (track.path_v1[0][0],track.path_v1[0][1], track.path_v1[0][2], track.path_v1[-1][0] , track.path_v1[-1][1] , track.path_v1[-1][2] ))
-
+            """
+            
             dc.tracks3D_list.append(track)
 
             dc.evt_list[-1].nTracks3D += 1

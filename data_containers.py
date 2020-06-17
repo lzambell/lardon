@@ -170,12 +170,18 @@ class hits:
         """ sort hits by decreasing Z and increasing channel """
         return (self.Z > other.Z) or (self.Z == other.Z and self.X < other.X)
 
-    def hit_positions(self, v, pitch):
-        self.X = self.channel*pitch
+    def hit_positions(self, v):
+        self.X = self.channel*cf.ChanPitch
+
+        if(self.view == 0):
+            if(self.crp == 1 or self.crp == 2):
+                self.X -= cf.n_ChanPerCRP * cf.ChanPitch
         
-        if(self.crp == 1 and self.view == 0):
-            self.X -= 300
-        self.Z = 300. - self.max_t*0.4*v*0.1
+        else:
+            if(self.crp == 2 or self.crp == 3):
+                self.X -= cf.n_ChanPerCRP * cf.ChanPitch                
+
+        self.Z = cf.Anode_Z - self.max_t*cf.n_Sampling*v*0.1
 
     def hit_charge(self):
         self.charge *= cf.n_Sampling 

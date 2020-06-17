@@ -1,20 +1,16 @@
 import config as cf
 import data_containers as dc
+import pedestals as ped
 
 import numpy as np
 import numexpr as ne 
-import numba as nb
 import time
 
 from sklearn import linear_model
 import cmath
 
 
-
-#import plot_event as plot_ev
-
 def define_ROI_ADC(thresh):
-    #dc.mask = np.where( (dc.data > thresh) | ~dc.alive_chan, False, True)
     dc.mask = ne.evaluate( "where((data > thresh) | ~alive_chan, 0, 1)", global_dict={'data':dc.data, 'alive_chan':dc.alive_chan}).astype(bool)
 
 
@@ -23,18 +19,12 @@ def define_ROI(sig_thresh, iteration):
 
     """ Update the mask based on pedestal RMS """    
     for it in range(iteration):
-        compute_pedestal_RMS()
+        ped.compute_pedestal_RMS()
 
         dc.ped_rms = dc.ped_rms[:,:,:,None]
         dc.mask = ne.evaluate( "where((data > sig_thresh*rms) | (~alive_chan), 0, 1)", global_dict={'data':dc.data, 'alive_chan':dc.alive_chan, 'rms':dc.ped_rms}).astype(bool)
         dc.ped_rms = np.squeeze(dc.ped_rms, axis=3)
 
-
-def compute_pedestal_RMS():
-    dc.ped_rms =  np.std(dc.data * dc.mask, axis=3)
-
-def compute_pedestal_mean():
-    dc.ped_mean = np.mean(dc.data * dc.mask, axis=3)
 
 def coherent_filter(groupings):
     """
@@ -70,7 +60,7 @@ def coherent_filter(groupings):
         """ restore original data shape """
         dc.data = np.reshape(dc.data, (cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP, cf.n_Sample))
         dc.mask = np.reshape(dc.mask, (cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP, cf.n_Sample))
-        #plot_ev.plot_event_display("coh_grp_"+str(group))
+
 
 
 
@@ -96,7 +86,11 @@ def FFTLowPass(lowpass, freqlines) :
     regr = linear_model.LinearRegression()
     regi = linear_model.LinearRegression()
 
-    """remove specific ferquencies"""
+    """remove specific frequencies"""
+
+    # smooth the frequencies removed from prev and next freq. value (linear fit)
+    # still introduce artefacts - not recommended to use
+
     for f in freqlines:
         fbin = int(f * cf.n_Sample * cf.n_Sampling)
         for icrp in range(cf.n_CRPUsed):
@@ -121,24 +115,12 @@ def FFTLowPass(lowpass, freqlines) :
                     regr.fit(ptsx, ptsyr)
                     regi.fit(ptsx, ptsyi)
 
-                    """
-                    if(icrp==0 and iview == 0 and ichan == 0):
-                        print("fbin is ", fbin)
-                        print(ptsx)
-                        print(ptsyr)
-                        print(ptsyi)
-                        print(regr.coef_, " ", regi.coef_)
-                    """
 
                     xtorm = np.asarray(range(fbin-4,fbin+5)).reshape(-1,1)
                     yvalr = regr.predict(xtorm)
                     yvali = regi.predict(xtorm)
 
                     for ib in range(9):
-                        """
-                        if(icrp==0 and iview == 0 and ichan == 0):
-                            print(" -> ", ib, " = ", yvalr[ib], " ", yvali[ib])
-                        """
                         fdata[icrp,iview,ichan,fbin-4+ib] = complex(yvalr[ib], yvali[ib]) 
           
         #gauss_cut[max(fbin-2,0):min(fbin+3,n)] = 0.2
@@ -157,8 +139,8 @@ def FFTLowPass(lowpass, freqlines) :
 
 
     """get power spectrum after cut"""
-    ps = 10.*np.log10(np.abs(fdata)+1e-1) 
-    return ps
+    #ps = 10.*np.log10(np.abs(fdata)+1e-1) 
+    #return ps
 
     
 def FFT2D() :

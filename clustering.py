@@ -3,6 +3,7 @@ import data_containers as dc
 
 import numpy as np
 import sklearn.cluster as skc
+#import sklearn.decomposition as skd
 
 
 
@@ -34,9 +35,11 @@ def dbscan(eps, min_samp, y_squeez):
 
             """try to cluster un-clustered hits only"""
             hits = [x for x in dc.hits_list if x.crp==icrp and x.view==iview and x.cluster == -1]
+            if(len(hits)==0): continue
 
             """ squeeze y axis instead of rebinning or defining a new metric """
-            data = [[x.channel,x.max_t*y_squeez] for x in hits]
+            #data = [[x.channel,x.max_t*y_squeez] for x in hits]
+            data = [[x.X,x.Z*y_squeez] for x in hits]
             X = np.asarray(data)
             db = skc.DBSCAN(eps=eps,min_samples=min_samp).fit(X)
             labels = db.labels_
@@ -45,12 +48,18 @@ def dbscan(eps, min_samp, y_squeez):
                 h.cluster = cluster if cluster==-1 else cluster + dc.evt_list[-1].nClusters[icrp,iview]
 
             n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-            #dc.ncluster[icrp,iview] += n_clusters
             dc.evt_list[-1].nClusters[icrp, iview] += n_clusters
+    
 
+            """
+            #compute PCA of each cluster to see if it is made of one track or more
+            #not used at the moment
+            for icl in range(n_clusters):
+                hcl = [[x.X, x.Z*y_squeez] for x in hits if x.cluster==icl]
+                pca = skd.PCA().fit(np.asarray(hcl))
+                print("CRP ", icrp, " View ", iview, " Cluster ", icl, ": ", len(hcl), " from %.2f, %.2f"%(hcl[0][0], hcl[0][1]))
+                print(pca.explained_variance_)
+                print(pca.components_)
+            """
             #n_noise = list(labels).count(-1)
-            #print("CRP ", icrp, " View ", iview)
-            #print("number of clusters : %d" % n_clusters)
-            #print('Number of noise points: %d' % n_noise)
-    #return ncl
     
