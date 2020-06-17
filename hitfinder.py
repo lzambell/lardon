@@ -7,7 +7,7 @@ import numpy as np
 
 """numba slows down this code!"""
 #@nb.jit(forceobj=True,nopython=True)
-def hit_search(data,crp,view,channel,start, dt_min, thr1, thr2):
+def hit_search(data,crp,view,channel,start, dt_min, thr1, thr2):#, pad_l, pad_r):
     """search hit-shape in a list of points"""
     """algorithm from qscan"""
     
@@ -62,7 +62,8 @@ def hit_search(data,crp,view,channel,start, dt_min, thr1, thr2):
             hitFlag = False
             h.stop = it-1
 
-            if((singleHit and (h.stop-h.start >= dt_min)) or not singleHit):
+            #if((singleHit and (h.stop-h.start >= dt_min)) or not singleHit):
+            if(h.stop-h.start >= dt_min):
                 ll.append(h)
 
         i+=1
@@ -140,7 +141,7 @@ def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2):
     print("Drift Velocity : v = %.3f mm/mus"%v)
 
     """ transforms hit channel and tdc to positions """
-    [x.hit_positions(v, cf.ChanPitch) for x in dc.hits_list]
+    [x.hit_positions(v) for x in dc.hits_list]
 
     """ compute hit charge in fC """
     [x.hit_charge() for x in dc.hits_list]
