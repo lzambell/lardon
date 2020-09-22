@@ -9,6 +9,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib import collections  as mc
 import itertools as itr
 import math
+import colorcet as cc
 
 from mpl_toolkits.mplot3d import Axes3D 
     
@@ -47,9 +48,11 @@ light_blue_red_dict = {
     
 }
 lbr_cmp = LinearSegmentedColormap('lightBR', light_blue_red_dict)
+cmap_nice = cc.cm.linear_tritanopic_krjcw_5_95_c24_r
 
-adcmin = -5#10
-adcmax = 5#10 #35
+
+adcmin = -10#10
+adcmax = 30#10 #35
 
 
 def plot_waveform(data, legtitle, colors, option=None):
@@ -182,7 +185,7 @@ def plot_event_display(option=None):
         for iview in range(2):
             iplot = iplot + 1
             ax.append(fig.add_subplot(2,2,iplot))
-            im.append(plt.imshow(dc.data[icrp,iview,:,:].transpose(), origin='lower',aspect='auto',cmap=lbr_cmp, vmin=adcmin, vmax=adcmax))
+            im.append(plt.imshow(dc.data[icrp,iview,:,:].transpose(), origin='lower',aspect='auto',cmap=cc.cm.linear_wcmr_100_45_c42, vmin=adcmin, vmax=adcmax))#cmap=lbr_cmp#linear_protanopic_deuteranopic_kbjyw_5_95_c25_r#linear_worb_100_25_c53
             plt.colorbar(im[-1])
 
             ax[-1].set_xlabel('View Channel')
@@ -206,27 +209,45 @@ def plot_event_display(option=None):
 
 
 
-def plot_event_display_allcrp(option=None):    
-
+def plot_event_display_allcrp(option=None):
     fig = plt.figure(figsize=(12,9))
-    #gs = gridspec.GridSpec(nrows=2, ncols=3, wi_ratios=[1,10])
+    gs = gridspec.GridSpec(nrows=4,ncols=2, height_ratios=[1,10,10,10])
     ax = []
     im = []
-    iplot = 0
+    
+    i = 1
 
     for icrp in range(4):
-        if(icrp == 2): continue
-        for iview in range(2):
-            iplot = iplot + 1
-            ax.append(fig.add_subplot(3,2,iplot))
-            im.append(plt.imshow(dc.data[icrp,iview,:,:].transpose(), origin='lower',aspect='auto',cmap=lbr_cmp, vmin=adcmin, vmax=adcmax))
-            plt.colorbar(im[-1])
-
+        if(icrp==2): continue
+        """ view 0 """
+        ax.append(fig.add_subplot(gs[i, 0]))
+        im.append(plt.imshow(dc.data[icrp,0,:,:].transpose(), origin='lower',aspect='auto',cmap=cmap_nice, vmin=adcmin, vmax=adcmax))        
+        if(icrp==3):
             ax[-1].set_xlabel('View Channel')
-            ax[-1].set_ylabel('Time')
-            ax[-1].set_title('CRP '+str(icrp)+' - View '+str(iview))    
+        ax[-1].set_ylabel('Time')
+        ax[-1].set_title('CRP '+str(icrp)+' - View 0')
 
-    plt.subplots_adjust(bottom=0.08, top=0.95, hspace=0.4)
+        """ view 1 """
+        ax.append(fig.add_subplot(gs[i, 1], sharey=ax[-1]))
+        im.append(plt.imshow(dc.data[icrp,1,:,:].transpose(), origin='lower',aspect='auto',cmap=cc.cm.linear_tritanopic_krjcw_5_95_c24_r, vmin=adcmin, vmax=adcmax))        
+        ax[-1].yaxis.tick_right()
+        ax[-1].yaxis.set_label_position("right")
+
+        if(icrp==3):
+            ax[-1].set_xlabel('View Channel')
+        ax[-1].set_ylabel('Time')
+        ax[-1].set_title('CRP '+str(icrp)+' - View 1')
+        i += 1
+    ax_col  = fig.add_subplot(gs[0, :])
+    ax_col.set_title('Collected Charge [ADC]')
+        
+                         
+    cb = fig.colorbar(im[0], cax=ax_col, orientation='horizontal')
+    cb.ax.xaxis.set_ticks_position('top')
+    cb.ax.xaxis.set_label_position('top')
+
+    plt.subplots_adjust(wspace=0.05, hspace=0.4, top=0.92, bottom=0.08, left=0.06, right=0.94)
+
 
     if(option):
         option = "_"+option
@@ -240,7 +261,6 @@ def plot_event_display_allcrp(option=None):
 
     #plt.show()
     plt.close()
-
 
 
 def plot_pedestal(datas, legtitle, colors, option=None):
