@@ -116,7 +116,7 @@ class event:
     def dump(self):
         print("RUN ",self.run_nb, " EVENT ", self.evt_nb_loc, " / ", self.evt_nb_glob,)
         print("Taken at ", time.ctime(self.time_s), " + ", self.time_ns, " ns ")
-    
+        print(" TS = ", self.time_s, " +", self.time_ns)
     def dump_reco(self):
         print("\n*-*-*-* Reconstruction Summary *-*-*-*")
         for icrp in range(cf.n_CRPUsed):
@@ -248,6 +248,7 @@ class trk2D:
         self.end_slope_err = slope_err
         self.nHits += 1
         self.len_path += math.sqrt( pow(self.path[-1][0]-x, 2) + pow(self.path[-1][1]-y,2) )
+
         #beware to append (x,y) after !
         self.path.append((x,y))
         self.dQ.append(q)
@@ -328,9 +329,6 @@ class trk2D:
 
 class trk3D:
     def __init__(self, tv0, tv1):
-        tv0.matched = evt_list[-1].nTracks3D
-        tv1.matched = evt_list[-1].nTracks3D
-
         self.ini_crp = tv0.ini_crp
         self.end_crp = tv0.end_crp
 
@@ -376,3 +374,11 @@ class trk3D:
         self.len_path_v1 = length
         self.path_v1     = path
         self.dQds_v1     = dqds
+
+    def matched(self, tv0, tv1):
+        tv0.matched = evt_list[-1].nTracks3D
+        tv1.matched = evt_list[-1].nTracks3D
+
+    
+    def dump(self):
+        print(" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)"%(self.ini_x, self.ini_y, self.ini_z, self.end_x, self.end_y, self.end_z))
