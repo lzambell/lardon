@@ -20,13 +20,13 @@ def complete_trajectory(track, other, view):
     """ ugly fix to remove multiple hits at the same z """
     if(len(z_o) != len(set(z_o))) :
         i=1
-        while(i < len(z_o)-1):
+        while(i < len(z_o)):
             if(z_o[i-1] >= z_o[i]):
                 del z_o[i]
                 del x_o[i]
             else:
                 i += 1
-
+        
 
     """at least 3 points for the spline """
     if(len(z_o) < 4):
@@ -129,6 +129,7 @@ def find_tracks(ztol, qfrac):
                 continue
             track.set_view1(l, t, q)
             track.matched(ti, tbest)
+            track.angles(ti,tbest)
 
             dc.tracks3D_list.append(track)
             dc.evt_list[-1].nTracks3D += 1
