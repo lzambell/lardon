@@ -43,16 +43,6 @@ def reset_event():
 
 
 class pdmap: 
-    crp    = -1
-    view   = -1
-    vchan  = -1
-    ref_ped    = 0.0
-    ref_rms    = 0.0
-    raw_ped    = 0.0
-    raw_rms    = 0.0
-    evt_ped    = 0.0
-    evt_rms    = 0.0
-
     def __init__(self, crp, view, vchan):
         self.crp   = crp
         self.view  = view
@@ -87,17 +77,6 @@ class pdmap:
         return self.crp, self.view, self.vchan
 
 class event:
-    run_nb      = -1
-    evt_nb_loc  = -1 #in that subfile
-    evt_nb_glob = -1 #in the run
-    time_s      = 0
-    time_ns     = 0
-    evt_flag    = False
-    nHits       = np.zeros((cf.n_CRP, cf.n_View), dtype=int)
-    nClusters   = np.zeros((cf.n_CRP, cf.n_View), dtype=int)
-    nTracks2D   = np.zeros((cf.n_View), dtype=int)
-    nTracks3D   = 0
-
     def __init__(self, run_nb, evt_glob, t_s, t_ns, flag):
         self.run_nb      = run_nb
         self.evt_nb_glob = evt_glob
@@ -135,20 +114,6 @@ class event:
 
 
 class hits:
-    view    = -1
-    crp     = -1
-    channel = -1
-    start   = -1
-    stop    = -1
-    charge  = -1
-    max_t   = -1 
-    max_adc = -1
-    cluster = -1
-    X       = -1
-    Z       = -1
-    matched = -1
-
-
     def __init__(self, crp, view, channel, start, stop, charge, max_t, max_adc):
         self.crp     = crp
         self.view    = view
@@ -167,6 +132,7 @@ class hits:
     def __lt__(self,other):
         #"""sort hits by increasing channel and increasing Z"""
         #return (self.X < other.X) or (self.X== other.X and self.Z < other.Z)
+
         """ sort hits by decreasing Z and increasing channel """
         return (self.Z > other.Z) or (self.Z == other.Z and self.X < other.X)
 
@@ -191,30 +157,13 @@ class hits:
         self.matched=ID
 
 class trk2D:
-    ini_crp = -1
-    end_crp = -1
-    view    = -1
-    ini_slope   = -1
-    ini_slope_err = -1
-    end_slope   = -1
-    end_slope_err = -1
-    len_straight = -1
-    len_path = -1
-    tot_charge = -1
-    nHits   = -1
-    path    = []
-    dQ      = []
-    chi2    = -1
-    matched = -1
-    cluster = -1
-
     def __init__(self, ini_crp, view, ini_slope, ini_slope_err, x0, y0, q0, chi2, cluster):
         self.ini_crp = ini_crp
         self.end_crp = ini_crp
         self.view    = view
-        self.ini_slope   = ini_slope
+        self.ini_slope       = ini_slope
         self.ini_slope_err   = ini_slope_err
-        self.end_slope   = ini_slope
+        self.end_slope       = ini_slope
         self.end_slope_err   = ini_slope_err
         self.nHits   = 1
         self.path    = [(x0,y0)]
@@ -240,7 +189,6 @@ class trk2D:
         self.dQ.append(q)
         self.tot_charge += q
         self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1], 2) )
-
 
 
     def add_hit_update(self, slope, slope_err, x, y, q, chi2):
@@ -297,6 +245,7 @@ class trk2D:
         self.len_path += other.len_path 
         self.len_path += self.dist(other)
         self.matched = -1
+
         if(self.path[0][1] > other.path[0][1]):
                self.ini_crp = self.ini_crp
                self.end_crp = other.end_crp
@@ -324,7 +273,7 @@ class trk2D:
                self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1],2) )        
 
     def mini_dump(self):
-               print("[", self.ini_crp, " -> ", self.end_crp,",",self.view,"] from (%.1f,%.1f)"%(self.path[0][0], self.path[0][1]), " to (%.1f, %.1f)"%(self.path[-1][0], self.path[-1][1]), " N = ", self.nHits, " L = %.1f/%.1f"%(self.len_straight, self.len_path), " Q = ", self.tot_charge )
+        print("[", self.ini_crp, " -> ", self.end_crp,",",self.view,"] from (%.1f,%.1f)"%(self.path[0][0], self.path[0][1]), " to (%.1f, %.1f)"%(self.path[-1][0], self.path[-1][1]), " N = ", self.nHits, " L = %.1f/%.1f"%(self.len_straight, self.len_path), " Q = ", self.tot_charge )
                
 
 class trk3D:
@@ -359,17 +308,19 @@ class trk3D:
         self.end_x = tv0.path[-1][0]
         self.end_y = tv1.path[-1][0]
         self.end_z = 0.5*(tv0.path[-1][1] + tv1.path[-1][1])
+
+        self.t0 = 0.
         
         self.path_v0 = []
         self.path_v1 = []
-        self.dQds_v0   = []
-        self.dQds_v1   = []
+        self.dQds_v0 = []
+        self.dQds_v1 = []
 
     def set_view0(self, length, path, dqds):
         self.len_path_v0 = length
         self.path_v0     = path
         self.dQds_v0     = dqds
-
+        
     def set_view1(self, length, path, dqds):
         self.len_path_v1 = length
         self.path_v1     = path
@@ -379,6 +330,24 @@ class trk3D:
         tv0.matched = evt_list[-1].nTracks3D
         tv1.matched = evt_list[-1].nTracks3D
 
-    
+
+    def angles(self, tv0, tv1):
+
+        """ initial angles """
+        slope_v0 = tv0.ini_slope #dx/dz
+        slope_v1 = tv1.ini_slope #dy/dz
+        self.ini_phi = math.degrees(math.atan2(slope_v1, slope_v0))
+        self.ini_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),1))
+
+        """ end angles """
+        slope_v0 = tv0.end_slope #dx/dz
+        slope_v1 = tv1.end_slope #dy/dz
+        self.end_phi = math.degrees(math.atan2(slope_v1, slope_v0))
+        self.end_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),1))
+
+        
     def dump(self):
         print(" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)"%(self.ini_x, self.ini_y, self.ini_z, self.end_x, self.end_y, self.end_z))
+        print(" %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = %.2f / %.2f"%(self.len_path_v0, self.len_path_v1))
+
+
