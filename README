@@ -15,8 +15,8 @@ To run lardon on data :
 python3 reader.py -run <run nb> -sub <subfile name> -n <nb of events (optional)> -out <output file option>
 
 To run lardon on MC : 
-... to be implemented ...
-
+add -mc <MC root file to be read>
+the simulation will be added to a run of data (preferably a noise run!)
 
 ** CRP/VIEW CONVENTION **
 (y)

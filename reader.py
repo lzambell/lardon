@@ -17,6 +17,7 @@ import clustering as clus
 import track_2d as trk2d
 import track_3d as trk3d
 import store as store
+import read_mc as mc
 
 
 def need_help():
@@ -26,6 +27,7 @@ def need_help():
     print(" -n   <number of event to process>  [default (or -1) is all]")
     print(" -out <output name optn>")
     print(" -type <evt type cosmics/ped/...> [default is cosmics]")
+    print(" -mc <simulation root file to be added to noise>") 
     print(" -h print this message")
 
     sys.exit()
@@ -45,12 +47,13 @@ freqlines        = []#0.0234, 0.0625, 0.0700] #in MHz
 signal_thresh    = 4.
 signal_thresh_2  = 2.5
 adc_thresh       = 6.
-coherent_groups  = [64,32,8]
-outname_option = ""
+coherent_groups  = [320, 64, 8]#[64,32,8]
 
+outname_option = ""
 nevent = -1 
 evt_type = "cosmics"          
-
+mc_file  = ""
+addMC = False
 for index, arg in enumerate(sys.argv):
     if arg in ['-run'] and len(sys.argv) > index + 1:
         run_n = sys.argv[index + 1]
@@ -62,7 +65,10 @@ for index, arg in enumerate(sys.argv):
         evt_type = sys.argv[index + 1]
     elif arg in ['-out'] and len(sys.argv) > index + 1:
         outname_option = sys.argv[index + 1]
-                
+    elif arg in ['-mc'] and len(sys.argv) > index + 1:
+        addMC = True
+        mc_file = sys.argv[index + 1]
+    
 
 tstart = time.time()
 
@@ -98,6 +104,11 @@ if(nevent > nb_evt or nevent < 0):
     nevent = nb_evt
 
 print(" --->> Will process ", nevent, " events [ out of ", nb_evt, "] of run ", run_nb)
+if(addMC):
+    print(" Will add MC from file :", mc_file)
+    the_mc = mc.readmc(mc_file)
+    
+    
 store.store_infos(output, run_n, evt_file, nevent, time.time())
  
 sequence = []
@@ -144,7 +155,6 @@ for ievent in range(nevent):
 
     print(" -> Reading time %.2f s"%( tevtdata - tevtread))
 
-    plot_ev.plot_event_display("raw")
 
     if(run_nb <= cf.run_inv_signal):
         dc.data *= -1.    
@@ -152,6 +162,10 @@ for ievent in range(nevent):
     elif(cf.n_CRPUsed > 2):
         #should ask dario if this is fixed and if so, when
         dc.data[3,:,:,:] *= -1.
+
+    if(addMC):
+        the_mc.read_event(ievent)
+
 
     t_ped_raw = time.time()
 
@@ -167,38 +181,16 @@ for ievent in range(nevent):
     print("time to compute pedestals : %.3f s"%(time.time() - t_ped_raw))
 
 
-    #plot_ev.plot_correlations(1,1,"raw")
-    #plot_ev.plot_correlations(1,0,"raw")
-    #plot_ev.plot_event_display_allcrp("raw")
-
-    """
-    wvf_raw_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
-    wvf_raw_crp0_v1 = [dc.data[0,1,100,:].copy(), dc.data[0,1,400,:].copy(), dc.data[0,1,850,:].copy()]
-    wvf_raw_crp1_v0 = [dc.data[1,0,100,:].copy(), dc.data[1,0,400,:].copy(), dc.data[1,0,850,:].copy()]
-    wvf_raw_crp1_v1 = [ dc.data[1,1,100,:].copy(), dc.data[1,1,400,:].copy(), dc.data[1,1,850,:].copy()]
-    """
+    #plot_ev.plot_event_display_allcrp()
+    #plot_ev.plot_event_display()
 
     tfft = time.time()
 
     #ps = 
     noise.FFTLowPass(lowpasscut, freqlines)
-    """
-    if(ievent==0):
-        ps_avg = ps/nevent #noise.FFTLowPass(lowpasscut, freqlines)/nevent
-    else:
-        ps_avg += ps/nevent #noise.FFTLowPass(lowpasscut, freqlines)/nevent
-    """
+
 
     #noise.FFT2D()
-
-
-
-    """
-    wvf_fft_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
-    wvf_fft_crp0_v1 = [dc.data[0,1,100,:].copy(), dc.data[0,1,400,:].copy(), dc.data[0,1,850,:].copy()]
-    wvf_fft_crp1_v0 = [dc.data[1,0,100,:].copy(), dc.data[1,0,400,:].copy(), dc.data[1,0,850,:].copy()]
-    wvf_fft_crp1_v1 = [ dc.data[1,1,100,:].copy(), dc.data[1,1,400,:].copy(), dc.data[1,1,850,:].copy()]
-    """
 
     print(" time to fft %.2f"%( time.time() - tfft))
     tadc = time.time()
@@ -218,33 +210,7 @@ for ievent in range(nevent):
     """Apply coherent filter(s) """
 
     noise.coherent_filter(coherent_groups)
-
-
-    """
-    for i in range(6):
-        ich_start = i*160
-        ich_stop  = (i+1)*160
-        plot_ev.plot_correlations(dc.data[0,0,ich_start:ich_stop,:],"micro_crp0_v0_ch"+str(ich_start)+"_"+str(ich_stop))
-        plot_ev.plot_correlations(dc.data[0,1,ich_start:ich_stop,:],"micro_crp0_v1_ch"+str(ich_start)+"_"+str(ich_stop))
-        plot_ev.plot_correlations(dc.data[1,0,ich_start:ich_stop,:],"micro_crp1_v0_ch"+str(ich_start)+"_"+str(ich_stop))
-        plot_ev.plot_correlations(dc.data[1,1,ich_start:ich_stop,:],"micro_crp1_v1_ch"+str(ich_start)+"_"+str(ich_stop))
-    """
-
-    """
-    wvf_coh_crp0_v0 = [dc.data[0,0,100,:].copy(), dc.data[0,0,400,:].copy(), dc.data[0,0,850,:].copy()]
-    wvf_coh_crp0_v1 = [dc.data[0,1,100,:].copy(), dc.data[0,1,400,:].copy(), dc.data[0,1,850,:].copy()]
-    wvf_coh_crp1_v0 = [dc.data[1,0,100,:].copy(), dc.data[1,0,400,:].copy(), dc.data[1,0,850,:].copy()]
-    wvf_coh_crp1_v1 = [ dc.data[1,1,100,:].copy(), dc.data[1,1,400,:].copy(), dc.data[1,1,850,:].copy()]
-    """
-    
-    """
-    plot_ev.plot_waveform_evo([wvf_raw_crp0_v0, wvf_fft_crp0_v0, wvf_coh_crp0_v0], ['raw','fft','coh'], ['black','cyan','orange'],"crp0_v0"+outname_option)
-    plot_ev.plot_waveform_evo([wvf_raw_crp0_v1, wvf_fft_crp0_v1, wvf_coh_crp0_v1], ['raw','fft','coh'], ['black','cyan','orange'],"crp0_v1"+outname_option)
-
-    plot_ev.plot_waveform_evo([wvf_raw_crp1_v0, wvf_fft_crp1_v0, wvf_coh_crp1_v0], ['raw','fft','coh'], ['black','cyan','orange'],"crp1_v0"+outname_option)
-    plot_ev.plot_waveform_evo([wvf_raw_crp1_v1, wvf_fft_crp1_v1, wvf_coh_crp1_v1], ['raw','fft','coh'], ['black','cyan','orange'],"crp1_v1"+outname_option)
-    """
-
+    #plot_ev.plot_event_display()
 
     print(" time to coh filt %.2f"%( time.time() - t3))
 
@@ -304,13 +270,13 @@ for ievent in range(nevent):
 
     t9 = time.time()
     print("time to find tracks %.3f"%(t9-t8))
-
+    
+    #plot_ev.plot_tracks2D("before")
 
     tst = time.time()
     """ parameters are : min distance in between 2 tracks end points, slope error tolerance, extrapolated distance tolerance"""
     trk2d.stitch_tracks(50., 3., 5.)
     print("time to stitch tracks %.3f"%(time.time()-tst))
-
 
 
     #plot_ev.plot_tracks2D()
@@ -323,7 +289,9 @@ for ievent in range(nevent):
     #plot_ev.plot_tracks3D_proj()
     #plot_ev.plot_tracks3D()
 
-    dc.evt_list[-1].dump_reco()    
+    dc.evt_list[-1].dump_reco()
+
+    [x.dump() for x in dc.tracks3D_list]
 
     tstore = time.time()
     gr = store.new_event(output, ievent)
@@ -334,19 +302,6 @@ for ievent in range(nevent):
     store.store_tracks2D(output, gr)
     store.store_tracks3D(output, gr)
     print("time to store %.3f"%(time.time()-tstore))
-
-
-"""
-ps_avg = np.reshape(ps_avg, (2, 2, 15, 64, 5001))
-ps_avg = np.einsum('ijklm->ijkm', ps_avg)/64.#ps_avg.sum(axis=3)
-plot_ev.plot_event_fft(ps_avg, zmax=1.25, option="all")
-plot_ev.plot_event_fft(ps_avg, zmax=0.25, option="zoom")
-
-
-for icrp in range(2):
-    for iview in range(2):
-        np.savetxt("fft/"+run_n + "_" + evt_file +"_fft_f_crp"+str(icrp)+"_v"+str(iview)+".txt",ps_avg[icrp,iview,:,:], delimiter=',')
-"""
 
 data.close()
 output.close()
