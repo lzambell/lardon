@@ -29,17 +29,18 @@ class Pedestal(IsDescription):
 
 
 class Hits(IsDescription):
-    crp     = UInt8Col()
-    view    = UInt8Col()
-    channel = UInt16Col()
-    tdc_max = UInt16Col()
-    z       = Float16Col()
-    x       = Float16Col()
-    dt      = Float16Col()
-    adc_max = UInt16Col()
-    charge  = Float16Col()
-    cluster = Int16Col()
-
+    crp       = UInt8Col()
+    view      = UInt8Col()
+    channel   = UInt16Col()
+    tdc_max   = UInt16Col()
+    z         = Float16Col()
+    x         = Float16Col()
+    dt        = Float16Col()
+    adc_max   = UInt16Col()
+    charge    = Float16Col()
+    endcharge = Float16Col(shape=(20))
+    cluster   = Int16Col()
+    matched   = Int16Col()
 
 class Tracks2D(IsDescription):
     view    = UInt8Col()
@@ -76,6 +77,14 @@ class Tracks3D(IsDescription):
     len_straight = Float16Col(shape=(cf.n_View))
     len_path     = Float16Col(shape=(cf.n_View))
     total_charge   = Float16Col(shape=(cf.n_View))
+	
+def filled_list(src_list, targ_len, replace=-1):
+    """takes a varible len() list and creates a new one with a fixed len()"""
+    for i in range(targ_len):
+        try:
+            yield src_list[i]
+        except IndexError:
+            yield replace
     
 def new_event(h5file, event_nb):
     return h5file.create_group("/", 'event_'+str(event_nb), 'Event '+str(event_nb))    
@@ -140,7 +149,9 @@ def store_hits(h5file, group):
         hit['dt']      = (h.stop - h.start)*cf.n_Sampling
         hit['adc_max'] = h.max_adc
         hit['charge']  = h.charge
+        hit['endcharge']=h.endcharge
         hit['cluster'] = h.cluster
+        hit['matched'] = h.matched
         hit.append()
     table.flush()
 

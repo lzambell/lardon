@@ -141,6 +141,7 @@ class hits:
     start   = -1
     stop    = -1
     charge  = -1
+    endcharge = -1
     max_t   = -1 
     max_adc = -1
     cluster = -1
@@ -149,13 +150,14 @@ class hits:
     matched = -1
 
 
-    def __init__(self, crp, view, channel, start, stop, charge, max_t, max_adc):
+    def __init__(self, crp, view, channel, start, stop, charge, endcharge, max_t, max_adc):
         self.crp     = crp
         self.view    = view
         self.channel = channel
         self.start   = start
         self.stop    = stop
         self.charge  = charge
+        self.endcharge  = endcharge
         self.max_t   = max_t
         self.max_adc = max_adc
         self.cluster = -1 #cluster
@@ -186,6 +188,10 @@ class hits:
     def hit_charge(self):
         self.charge *= cf.n_Sampling 
         self.charge /= cf.ADCtofC
+
+    def hit_endcharge(self):
+        self.endcharge *= cf.n_Sampling 
+        self.endcharge /= cf.ADCtofC
 
     def set_match(self, ID):
         self.matched=ID
