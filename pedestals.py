@@ -20,9 +20,10 @@ def compute_pedestal_RMS_nb(data, mask):
         for x,v in zip(ch,ma):
             if(v == True):
                 n += 1
-                Ex += x -K
+                Ex += x-K
                 Ex2 += (x-K)*(x-K)
-        res[idx] = -1. if n == 0 else np.sqrt((Ex2 - (Ex*Ex)/n)/(n-1))
+        """cut at min. 10 pts to compute a proper RMS"""
+        res[idx] = -1. if n < 10 else np.sqrt((Ex2 - (Ex*Ex)/n)/(n-1))
     return res
 
 
