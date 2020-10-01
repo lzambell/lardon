@@ -58,6 +58,7 @@ adcmax = 30#10 #35
 def plot_waveform(data, legtitle, colors, option=None):
 
     nplot = len(data)
+    print(nplot)
     if(nplot > 9):
         print(" ooops, I will only plot 9 waveforms")
 
@@ -65,12 +66,12 @@ def plot_waveform(data, legtitle, colors, option=None):
     ax = []
 
     for ip in range(nplot):
-        ax.append(fig.add_subplot(nplot,1,ip+1, sharex=True))
+        ax.append(fig.add_subplot(nplot,1,ip+1))#, sharex=True))
         d = data[ip]                
         plt.plot(d, colors[ip], label=legtitle[ip])
         ax[-1].set_xlabel('Time [tdc]')
         ax[-1].set_ylabel('ADC')
-        ax[-1].set_ylim(-8., 35.)
+        #ax[-1].set_ylim(-8., 35.)
         plt.legend()
         plt.subplots_adjust(bottom=0.05, top=.98, hspace=0.27)
 
@@ -177,22 +178,42 @@ def plot_waveform_hits(crp, view, channel, nsig, option=None):
 def plot_event_display(option=None):    
 
     fig = plt.figure(figsize=(12,9))
-    ax = []
+    gs = gridspec.GridSpec(nrows=3,ncols=2, height_ratios=[1,15,15])
+    axv0 = []
+    axv1 = []
     im = []
-    iplot = 0
+
+    i = 1
 
     for icrp in range(2):
         for iview in range(2):
-            iplot = iplot + 1
-            ax.append(fig.add_subplot(2,2,iplot))
-            im.append(plt.imshow(dc.data[icrp,iview,:,:].transpose(), origin='lower',aspect='auto',cmap=cc.cm.linear_wcmr_100_45_c42, vmin=adcmin, vmax=adcmax))#cmap=lbr_cmp#linear_protanopic_deuteranopic_kbjyw_5_95_c25_r#linear_worb_100_25_c53
-            plt.colorbar(im[-1])
+            axv0.append(fig.add_subplot(gs[i, 0]))
+            im.append(plt.imshow(dc.data[icrp,0,:,:].transpose(), origin='lower',aspect='auto',cmap=cmap_nice, vmin=adcmin, vmax=adcmax))        
+            if(icrp==1):
+                axv0[-1].set_xlabel('View Channel')
+            axv0[-1].set_ylabel('Time')
+            axv0[-1].set_title('CRP '+str(icrp)+' - View 0')
 
-            ax[-1].set_xlabel('View Channel')
-            ax[-1].set_ylabel('Time')
-            ax[-1].set_title('CRP '+str(icrp)+' - View '+str(iview))    
+            """ view 1 """
+            axv1.append(fig.add_subplot(gs[i, 1], sharey=axv0[-1]))
+            im.append(plt.imshow(dc.data[icrp,1,:,:].transpose(), origin='lower',aspect='auto',cmap=cmap_nice, vmin=adcmin, vmax=adcmax))        
+            axv1[-1].yaxis.tick_right()
+            axv1[-1].yaxis.set_label_position("right")
 
-    plt.subplots_adjust(bottom=0.08, top=0.95)
+            if(icrp==1):
+                axv1[-1].set_xlabel('View Channel')
+            axv1[-1].set_ylabel('Time')
+            axv1[-1].set_title('CRP '+str(icrp)+' - View 1')
+        i += 1
+
+    ax_col  = fig.add_subplot(gs[0, :])
+    ax_col.set_title('Collected Charge [ADC]')
+        
+                         
+    cb = fig.colorbar(im[0], cax=ax_col, orientation='horizontal')
+    cb.ax.xaxis.set_ticks_position('top')
+    cb.ax.xaxis.set_label_position('top')
+
 
     if(option):
         option = "_"+option
@@ -202,6 +223,7 @@ def plot_event_display(option=None):
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
+    plt.subplots_adjust(wspace=0.05, hspace=0.3, top=0.92, bottom=0.08, left=0.06, right=0.94)
     plt.savefig('ED/ed'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
 
     #plt.show()
@@ -212,7 +234,8 @@ def plot_event_display(option=None):
 def plot_event_display_allcrp(option=None):
     fig = plt.figure(figsize=(12,9))
     gs = gridspec.GridSpec(nrows=4,ncols=2, height_ratios=[1,10,10,10])
-    ax = []
+    axv0 = []
+    axv1 = []
     im = []
     
     i = 1
@@ -220,23 +243,23 @@ def plot_event_display_allcrp(option=None):
     for icrp in range(4):
         if(icrp==2): continue
         """ view 0 """
-        ax.append(fig.add_subplot(gs[i, 0]))
+        axv0.append(fig.add_subplot(gs[i, 0]))
         im.append(plt.imshow(dc.data[icrp,0,:,:].transpose(), origin='lower',aspect='auto',cmap=cmap_nice, vmin=adcmin, vmax=adcmax))        
         if(icrp==3):
-            ax[-1].set_xlabel('View Channel')
-        ax[-1].set_ylabel('Time')
-        ax[-1].set_title('CRP '+str(icrp)+' - View 0')
+            axv0[-1].set_xlabel('View Channel')
+        axv0[-1].set_ylabel('Time')
+        axv0[-1].set_title('CRP '+str(icrp)+' - View 0')
 
         """ view 1 """
-        ax.append(fig.add_subplot(gs[i, 1], sharey=ax[-1]))
-        im.append(plt.imshow(dc.data[icrp,1,:,:].transpose(), origin='lower',aspect='auto',cmap=cc.cm.linear_tritanopic_krjcw_5_95_c24_r, vmin=adcmin, vmax=adcmax))        
-        ax[-1].yaxis.tick_right()
-        ax[-1].yaxis.set_label_position("right")
+        axv1.append(fig.add_subplot(gs[i, 1], sharey=axv0[-1]))
+        im.append(plt.imshow(dc.data[icrp,1,:,:].transpose(), origin='lower',aspect='auto',cmap=cmap_nice, vmin=adcmin, vmax=adcmax))        
+        axv1[-1].yaxis.tick_right()
+        axv1[-1].yaxis.set_label_position("right")
 
         if(icrp==3):
-            ax[-1].set_xlabel('View Channel')
-        ax[-1].set_ylabel('Time')
-        ax[-1].set_title('CRP '+str(icrp)+' - View 1')
+            axv1[-1].set_xlabel('View Channel')
+        axv1[-1].set_ylabel('Time')
+        axv1[-1].set_title('CRP '+str(icrp)+' - View 1')
         i += 1
     ax_col  = fig.add_subplot(gs[0, :])
     ax_col.set_title('Collected Charge [ADC]')
@@ -400,7 +423,7 @@ def plot_hits_clustered(option=None):
 
 
     plt.savefig('ED/hit'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
-    plt.show()
+    #plt.show()
     plt.close()
 
 
