@@ -484,7 +484,7 @@ def plot_hits_var(option=None):
 def plot_hits_view(option=None):
 
     fig = plt.figure(figsize=(12,6))
-    gs = gridspec.GridSpec(nrows=2, ncols=2, height_ratios=[1,10], width_ratios=[6,4])
+    gs = gridspec.GridSpec(nrows=2, ncols=2, height_ratios=[1,30], width_ratios=[6,4])
 
     ax_col = fig.add_subplot(gs[0,:])
     ax_v0 = fig.add_subplot(gs[1, 0])
@@ -536,11 +536,11 @@ def plot_hits_view(option=None):
 def plot_tracks2D(option=None):
 
     fig = plt.figure(figsize=(12,6))
-    gs = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[6,4])#, height_ratios=[1,10])
+    gs = gridspec.GridSpec(nrows=2, ncols=2, height_ratios=[1,30], width_ratios=[6,4])#, height_ratios=[1,10])
 
-    #ax_col = fig.add_subplot(gs[0,:])
-    ax_v0 = fig.add_subplot(gs[0, 0])
-    ax_v1 = fig.add_subplot(gs[0, 1], sharey=ax_v0)
+    ax_leg = fig.add_subplot(gs[0,:])
+    ax_v0 = fig.add_subplot(gs[1, 0])
+    ax_v1 = fig.add_subplot(gs[1, 1], sharey=ax_v0)
 
     #max_adc_range=50
     hit_x_v0 = [x.X for x in dc.hits_list if x.view == 0]
@@ -579,17 +579,21 @@ def plot_tracks2D(option=None):
 
 
 
-    ax_v0.scatter(hit_x_v0, hit_z_v0, c="#ffb77d", s=2)#ffb77d
+    ax_v0.scatter(hit_x_v0, hit_z_v0, c="#ffb77d", s=2, label="Hits Clustered")#ffb77d
 
-    ax_v0.scatter(hit1_x_v0, hit1_z_v0, c="#28568f", s=2)#ffb77d
-    ax_v0.scatter(hit2_x_v0, hit2_z_v0, c="#abdf7f", s=2)#ffb77d
+    ax_v0.scatter(hit1_x_v0, hit1_z_v0, c="#28568f", s=2, label="Hits Attached to track")#ffb77d
+    ax_v0.scatter(hit2_x_v0, hit2_z_v0, c="#abdf7f", s=2, label="Hits Attached to track")#ffb77d
 
-    ax_v0.scatter(hit_x_v0_noise, hit_z_v0_noise, c="#d8cfd6", s=2)
+    ax_v0.scatter(hit_x_v0_noise, hit_z_v0_noise, c="#d8cfd6", s=2, label="Noise Hits")
     
+    #just for the legend
+    ax_v0.plot(tracks_hits_x_v0[0],tracks_hits_z_v0[0], c="#de425b",linewidth=1, label="Reconstructed 2D track")
 
     for tx,tz in zip(tracks_hits_x_v0, tracks_hits_z_v0):
         #ax_v0.scatter(tx, tz, c="#28568f",s=2) ##6d40cf
         ax_v0.plot(tx,tz, c="#de425b",linewidth=1)#f65789
+
+    
 
     ax_v0.set_title('View 0')
     ax_v0.set_ylabel('Z [cm]')
@@ -623,51 +627,14 @@ def plot_tracks2D(option=None):
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
+    leg = ax_leg.legend(*ax_v0.get_legend_handles_labels(), loc='center', ncol=5, markerscale=4, markerfirst=True)
+    for line in leg.get_lines():
+        line.set_linewidth(3)
+    ax_leg.axis('off')
 
     plt.savefig('ED/track2D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     #plt.show()
     plt.close()
-
-
-def plot_track2D_var(option=None):
-    
-    fig = plt.figure(figsize=(12,6))
-    gs = gridspec.GridSpec(nrows=3, ncols=2)
-
-    ax_nhits = fig.add_subplot(gs[0, 0])
-    ax_length = fig.add_subplot(gs[0, 1])
-    ax_angles = fig.add_subplot(gs[1:, :])
-
-    nb_hits_per_track = [x.nHits for x in dc.tracks2D_list]
-    ax_nhits.hist(nb_hits_per_track, bins=100, range=(0,100), histtype="stepfilled", color="#9bad51", edgecolor='#68723d')
-    ax_nhits.set_xlabel('Nb of Hits attached to tracks')
-
-    track_length = [math.sqrt(pow(x.path[0][0]-x.path[-1][0], 2) + pow(x.path[0][1]-x.path[-1][1], 2)) for x in dc.tracks2D_list]
-    ax_length.hist(track_length, bins = 100, range=(0, 60.), histtype="stepfilled", color="#e16543", edgecolor="#4a0d0d") 
-    ax_length.set_xlabel('Track 2D length [cm]')
-
-    angle_start = [x.ini_slope for x in dc.tracks2D_list]
-    angle_stop  = [x.end_slope for x in dc.tracks2D_list]
-    ax_angles.scatter(angle_start, angle_stop, c="#8aa7cf", s=1)
-    ax_angles.set_xlabel('initial slope')
-    ax_angles.set_ylabel('final slope')
-
-    plt.subplots_adjust(bottom=0.08, top=0.95, hspace=0.3)
-
-    if(option):
-        option = "_"+option
-    else:
-        option = ""
-
-
-    run_nb = str(dc.evt_list[-1].run_nb)
-    evt_nb = str(dc.evt_list[-1].evt_nb_glob)
-
-
-    plt.savefig('ED/track2D_properties'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
-    #plt.show()
-    plt.close()
-
 
 
 def plot_tracks3D_proj(option=None):
