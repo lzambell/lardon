@@ -3,7 +3,9 @@ import data_containers as dc
 
 import numpy as np
 import sklearn.cluster as skc
-#import sklearn.decomposition as skd
+import scipy.spatial as spatial
+import scipy.sparse.csgraph as csgr
+
 
 
 
@@ -51,15 +53,38 @@ def dbscan(eps, min_samp, y_squeez):
             dc.evt_list[-1].nClusters[icrp, iview] += n_clusters
     
 
-            """
-            #compute PCA of each cluster to see if it is made of one track or more
-            #not used at the moment
-            for icl in range(n_clusters):
-                hcl = [[x.X, x.Z*y_squeez] for x in hits if x.cluster==icl]
-                pca = skd.PCA().fit(np.asarray(hcl))
-                print("CRP ", icrp, " View ", iview, " Cluster ", icl, ": ", len(hcl), " from %.2f, %.2f"%(hcl[0][0], hcl[0][1]))
-                print(pca.explained_variance_)
-                print(pca.components_)
-            """
-            #n_noise = list(labels).count(-1)
-    
+
+def mst(r_max, n_min):
+
+    for icrp in range(cf.n_CRPUsed):
+        for iview in range(cf.n_View):
+
+            """try to cluster un-clustered hits only"""
+            hits = [x for x in dc.hits_list if x.crp==icrp and x.view==iview and x.cluster == -1]
+            if(len(hits) < n_min): continue
+            coord = np.asarray([(x.X, x.Z) for x in hits])
+
+            """ compute the distance between each points"""
+            graph = spatial.distance.cdist(coord, coord, 'euclidean')
+            """ keep only the two closest points """
+            #graph = graph * (graph < np.sort(graph, axis=-1)[:,[n_NN]])
+            """ keep only short edges """
+            graph[graph > r_max] = 0.
+            
+            """ compute the MST from this graph """
+            T = csgr.minimum_spanning_tree(csgraph=graph)
+            n_components, labels = csgr.connected_components(csgraph=T, directed=False, return_labels=True)
+
+            n_clusters = 0
+            for n in range(n_components):
+                idx = np.where(labels==n)[0]
+                if(len(idx) <= n_min):
+                    continue
+                else: 
+                    for i in idx:                        
+                        hits[i].cluster = n_clusters
+                    n_clusters += 1
+            dc.evt_list[-1].nClusters[icrp, iview] = n_clusters
+
+                
+                
