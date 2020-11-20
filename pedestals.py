@@ -9,7 +9,10 @@ import numpy as np
 def compute_pedestal_RMS_nb(data, mask):
     """ do not remove the @jit above, the code would then take ~40 s to run """
     shape = data.shape
-    
+
+    """ to avoid cases where the rms goes to 0"""
+    min_val = 1e-5
+
     res   = np.zeros(shape[:-1])
     for idx,v in np.ndenumerate(res):
         ch = data[idx]
@@ -22,8 +25,13 @@ def compute_pedestal_RMS_nb(data, mask):
                 n += 1
                 Ex += x-K
                 Ex2 += (x-K)*(x-K)
+
         """cut at min. 10 pts to compute a proper RMS"""
-        res[idx] = -1. if n < 10 else np.sqrt((Ex2 - (Ex*Ex)/n)/(n-1))
+        if( n < 10 ):
+            res[idx] = -1.
+        else:
+            val = np.sqrt((Ex2 - (Ex*Ex)/n)/(n-1))
+            res[idx] = min_val if val < min_val else val
     return res
 
 
@@ -76,4 +84,25 @@ def map_reference_pedestal(run):
             ped = float(li[7])
             rms = float(li[9])
             dc.map_ped[daqch].set_ref_pedestal(ped, rms)
+
+def store_raw_ped_rms():
+    
+    compute_pedestal_mean()
+    compute_pedestal_RMS()
+
+    """ store the raw pedestal and rms """
+    for i in range(cf.n_ChanTot):
+        crp, view, ch = dc.map_ped[i].get_ana_chan()
+        if(crp >= cf.n_CRPUsed): continue
+        dc.map_ped[i].set_raw_pedestal(dc.ped_mean[crp,view,ch], dc.ped_rms[crp,view,ch])
+
+def store_final_ped_rms():
+
+    compute_pedestal_mean()
+    compute_pedestal_RMS()
+
+    for i in range(cf.n_ChanTot):
+        crp, view, ch = dc.map_ped[i].get_ana_chan()
+        if(crp >= cf.n_CRPUsed): continue
+        dc.map_ped[i].set_evt_pedestal(dc.ped_mean[crp,view,ch], dc.ped_rms[crp,view,ch])
 
