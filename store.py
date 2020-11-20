@@ -4,9 +4,9 @@ import numpy as np
 import data_containers as dc
 
 class Infos(IsDescription):
-    run = UInt16Col()
-    subfile = StringCol(8)
-    nEvent = UInt8Col()
+    run          = UInt16Col()
+    subfile      = StringCol(8)
+    nEvent       = UInt8Col()
     process_date = UInt32Col()
 
 class Event(IsDescription):
@@ -51,8 +51,10 @@ class Tracks2D(IsDescription):
     z_end   = Float16Col()
     nHits   = UInt16Col()
     chi2    = Float16Col()
+
     slope_ini = Float16Col()
     slope_end = Float16Col()
+
     len_straight = Float16Col()
     len_path     = Float16Col()
     total_charge = Float16Col()
@@ -67,6 +69,7 @@ class Tracks3D(IsDescription):
     y_end   = Float16Col()
     z_end   = Float16Col()
     chi2    = Float16Col()
+
     theta_ini = Float16Col()
     theta_end = Float16Col()
     phi_ini   = Float16Col()
@@ -76,6 +79,9 @@ class Tracks3D(IsDescription):
     len_straight = Float16Col(shape=(cf.n_View))
     len_path     = Float16Col(shape=(cf.n_View))
     total_charge   = Float16Col(shape=(cf.n_View))
+
+    z0_corr = Float16Col()
+    t0_corr = Float16Col()
     
 def new_event(h5file, event_nb):
     return h5file.create_group("/", 'event_'+str(event_nb), 'Event '+str(event_nb))    
@@ -86,8 +92,6 @@ def store_infos(h5file, run, subfile, nevt, time):
     inf['run'] = run
 
     inf['subfile'] = subfile.ljust(8)[:8] #so the string is exactly 8 caracters
-    print(subfile)
-    print(subfile.ljust(8)[:8])
     inf['nEvent'] = nevt
     inf['process_date'] = time
     inf.append()
@@ -213,6 +217,9 @@ def store_tracks3D(h5file, group):
         t3d['theta_end'] = t.end_theta
         t3d['phi_ini']   = t.ini_phi
         t3d['phi_end']   = t.end_phi
+
+        t3d['z0_corr']    = t.z0_corr
+        t3d['t0_corr']    = t.t0_corr
 
         pts_v0 = [[p[0], p[1], p[2], q] for p,q in zip(t.path_v0,t.dQds_v0)]
         pts_v1 = [[p[0], p[1], p[2], q] for p,q in zip(t.path_v1,t.dQds_v1)]

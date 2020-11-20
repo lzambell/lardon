@@ -126,8 +126,8 @@ class hits:
         self.cluster = -1 #cluster
         self.X       = -1
         self.Z       = -1
-        self.matched = -1
-
+        self.matched = -9999
+        
 
     def __lt__(self,other):
         #"""sort hits by increasing channel and increasing Z"""
@@ -154,25 +154,37 @@ class hits:
         self.charge /= cf.ADCtofC
 
     def set_match(self, ID):
-        self.matched=ID
+        self.matched = ID
 
 class trk2D:
-    def __init__(self, ini_crp, view, ini_slope, ini_slope_err, x0, y0, q0, chi2, cluster):
+    def __init__(self, ID, ini_crp, view, ini_slope, ini_slope_err, x0, y0, q0, chi2, cluster):
+        self.trackID = ID
         self.ini_crp = ini_crp
         self.end_crp = ini_crp
         self.view    = view
+    
         self.ini_slope       = ini_slope
         self.ini_slope_err   = ini_slope_err
         self.end_slope       = ini_slope
         self.end_slope_err   = ini_slope_err
-        self.nHits   = 1
+
+        self.nHits      = 1
+        self.nHits_dray = 0
+
         self.path    = [(x0,y0)]
         self.dQ      = [q0]
-        self.chi2    = chi2
 
+        self.chi2_fwd    = chi2
+        self.chi2_bkwd   = chi2
+
+        self.drays   = []
+        
         self.tot_charge = q0
+        self.dray_charge = 0.
+
         self.len_straight = 0.
         self.len_path = 0.
+
         self.matched = -1
         self.cluster = cluster
         
@@ -181,8 +193,31 @@ class trk2D:
         return (self.path[0][1] > other.path[0][1]) or (self.path[0][1] == other.path[0][1] and self.path[0][0] < other.path[0][0])
 
 
+    def add_drays(self, x, y, q):
+        self.drays.append((x,y,q))
+        self.dray_charge += q
+        self.nHits_dray += 1
+        self.remove_hit(x, y, q)
+
+
+    def remove_hit(self, x, y, q):
+        pos = -1
+        for p,t in enumerate(self.path):
+            if(t[0] == x and t[1] == y and self.dQ[p]==q):
+                pos = p
+                break
+        #print("removing at position ", pos)
+        if(pos >= 0):
+            self.path.pop(pos)
+            self.dQ.pop(pos)
+            self.nHits -= 1
+            self.tot_charge -= q
+        else:
+            print("?! cannot remove hit ", x, " ", y, " ", q)
+            
     def add_hit(self, x, y, q):
         self.nHits += 1
+        
         self.len_path += math.sqrt( pow(self.path[-1][0]-x, 2) + pow(self.path[-1][1]-y,2) )
         #beware to append (x,y) after !
         self.path.append((x,y))
@@ -203,13 +238,63 @@ class trk2D:
         self.chi2 = chi2
         self.tot_charge += q
         self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1], 2) )
+
+
+    def update_forward(self, chi2, slope, slope_err):
+        self.chi2_fwd = chi2
+        self.end_slope = slope
+        self.end_slope_err = slope_err
+
+    def update_backward(self, chi2, slope, slope_err):
+        self.chi2_bkwd = chi2
+        self.ini_slope = slope
+        self.ini_slope_err = slope_err
+
+    def reset_path(self, path, dQ):
+        self.path = path
+        self.dQ = dQ
+        self.finalize_track()
         
 
-    def dist(self, other):
-        return math.sqrt(pow( self.path[-1][0] - other.path[0][0], 2) + pow(self.path[-1][1] - other.path[0][1], 2))
+    def finalize_track(self):
+        self.nHits = len(self.path)
+        self.tot_charge = sum(self.dQ)
 
-    def slope_comp(self, other, sigcut):
-        return (math.fabs( self.end_slope - other.ini_slope) < (sigcut*self.end_slope_err + sigcut*other.ini_slope_err))
+        self.nHits_dray = len(self.drays)
+        self.dray_charge = sum(k for i,j,k in self.drays)
+
+        self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1], 2) )        
+        self.len_path = 0.
+        for i in range(self.nHits-1):
+            self.len_path +=  math.sqrt( pow(self.path[i][0]-self.path[i+1][0], 2) + pow(self.path[i][1]-self.path[i+1][1],2) )
+            
+            
+
+    def dist(self, other, i=-1, j=0):
+        return math.sqrt(pow( self.path[i][0] - other.path[j][0], 2) + pow(self.path[i][1] - other.path[j][1], 2))
+
+
+
+    def slope_comp(self, other):#, sigcut):
+        """ check if both tracks have the same slope direction """
+        if(self.end_slope * other.ini_slope < 0.):
+            return 9999. #False
+
+        """ if slope error is too low, re-assign it to 5 percent """
+        if(self.end_slope_err == 0 or math.fabs(self.end_slope_err/self.end_slope) < 0.05):
+            end_err = math.fabs(self.end_slope*0.05)
+        else:
+            end_err = self.end_slope_err
+
+        if(other.ini_slope_err == 0 or math.fabs(other.ini_slope_err/other.ini_slope) < 0.05):
+            ini_err = math.fabs(other.ini_slope*0.05)
+        else:
+            ini_err = other.ini_slope_err
+
+        #return (math.fabs( self.end_slope - other.ini_slope) < (sigcut*end_err + sigcut*ini_err))
+
+        return math.fabs( self.end_slope - other.ini_slope) / (end_err + ini_err)
+
 
     def x_extrapolate(self, other, rcut):
         xa, za = self.path[-1][0], self.path[-1][1]
@@ -234,17 +319,20 @@ class trk2D:
     def joinable(self, other, dcut, sigcut, rcut):
         if(self.view != other.view): 
             return False
-        if( self.dist(other) < dcut and self.slope_comp(other, sigcut) == True and self.x_extrapolate(other, rcut) and self.z_extrapolate(other, rcut)):            
+        if( self.dist(other) < dcut and self.slope_comp(other) <  sigcut and self.x_extrapolate(other, rcut) and self.z_extrapolate(other, rcut)):            
             return True
 
 
     def merge(self, other):
         self.nHits += other.nHits
+        self.nHits_dray += other.nHits_dray
         self.chi2 += other.chi2 #should be refiltered though
         self.tot_charge += other.tot_charge
+        self.dray_charge += other.dray_charge
         self.len_path += other.len_path 
         self.len_path += self.dist(other)
         self.matched = -1
+        self.drays.extend(other.drays)
 
         if(self.path[0][1] > other.path[0][1]):
                self.ini_crp = self.ini_crp
@@ -271,6 +359,7 @@ class trk2D:
                self.path = other.path + self.path
                self.dQ = other.dQ + self.dQ
                self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1],2) )        
+        
 
     def mini_dump(self):
         print("[", self.ini_crp, " -> ", self.end_crp,",",self.view,"] from (%.1f,%.1f)"%(self.path[0][0], self.path[0][1]), " to (%.1f, %.1f)"%(self.path[-1][0], self.path[-1][1]), " N = ", self.nHits, " L = %.1f/%.1f"%(self.len_straight, self.len_path), " Q = ", self.tot_charge )
@@ -301,6 +390,9 @@ class trk3D:
         self.ini_phi = -1
         self.end_phi = -1
 
+        self.t0_corr = 0.
+        self.z0_corr = 0.
+
         self.ini_x = tv0.path[0][0]
         self.ini_y = tv1.path[0][0]
         self.ini_z = 0.5*(tv0.path[0][1] + tv1.path[0][1])
@@ -309,7 +401,6 @@ class trk3D:
         self.end_y = tv1.path[-1][0]
         self.end_z = 0.5*(tv0.path[-1][1] + tv1.path[-1][1])
 
-        self.t0 = 0.
         
         self.path_v0 = []
         self.path_v1 = []
@@ -330,6 +421,9 @@ class trk3D:
         tv0.matched = evt_list[-1].nTracks3D
         tv1.matched = evt_list[-1].nTracks3D
 
+    def set_t0_z0_corr(self, t0, z0):
+        self.t0_corr = t0
+        self.z0_corr = z0
 
     def angles(self, tv0, tv1):
 
@@ -337,17 +431,17 @@ class trk3D:
         slope_v0 = tv0.ini_slope #dx/dz
         slope_v1 = tv1.ini_slope #dy/dz
         self.ini_phi = math.degrees(math.atan2(slope_v1, slope_v0))
-        self.ini_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),1))
+        self.ini_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),-1.))
 
         """ end angles """
         slope_v0 = tv0.end_slope #dx/dz
         slope_v1 = tv1.end_slope #dy/dz
         self.end_phi = math.degrees(math.atan2(slope_v1, slope_v0))
-        self.end_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),1))
+        self.end_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),-1.))
 
         
     def dump(self):
         print(" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)"%(self.ini_x, self.ini_y, self.ini_z, self.end_x, self.end_y, self.end_z))
-        print(" %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = %.2f / %.2f"%(self.len_path_v0, self.len_path_v1))
-
+        print(" %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_v0, self.len_path_v1, self.len_straight_v0, self.len_straight_v1))
+        print(" corr : %.2f cm / %.2f mus"%(self.z0_corr, self.t0_corr))
 
