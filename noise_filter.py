@@ -4,11 +4,13 @@ import pedestals as ped
 
 import numpy as np
 import numexpr as ne 
-import time
+
+import bottleneck as bn
 
 from sklearn import linear_model
-import cmath
 
+
+    
 
 def define_ROI_ADC(thresh):
     dc.mask = ne.evaluate( "where((data > thresh) | ~alive_chan, 0, 1)", global_dict={'data':dc.data, 'alive_chan':dc.alive_chan}).astype(bool)
@@ -22,8 +24,12 @@ def define_ROI(sig_thresh, iteration):
         ped.compute_pedestal_RMS()
 
         dc.ped_rms = dc.ped_rms[:,:,:,None]
-        dc.mask = ne.evaluate( "where((data > sig_thresh*rms) | (~alive_chan), 0, 1)", global_dict={'data':dc.data, 'alive_chan':dc.alive_chan, 'rms':dc.ped_rms}).astype(bool)
+        dc.ped_mean = dc.ped_mean[:,:,:,None]
+
+        dc.mask = ne.evaluate( "where((data > mean + sig_thresh*rms) | (~alive_chan), 0, 1)", global_dict={'data':dc.data, 'alive_chan':dc.alive_chan, 'rms':dc.ped_rms, 'mean':dc.ped_mean}).astype(bool)
+        
         dc.ped_rms = np.squeeze(dc.ped_rms, axis=3)
+        dc.ped_mean = np.squeeze(dc.ped_mean, axis=3)
 
 
 def coherent_filter(groupings):
@@ -33,6 +39,7 @@ def coherent_filter(groupings):
     """
 
     for group in groupings:
+        print("apply coherent filter in groups of", group)
         if( (cf.n_ChanPerCRP % group) > 0):
             print(" Coherent Noise Filter in groups of ", group, " is not a possible ! ")
             return
@@ -60,7 +67,6 @@ def coherent_filter(groupings):
         """ restore original data shape """
         dc.data = np.reshape(dc.data, (cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP, cf.n_Sample))
         dc.mask = np.reshape(dc.mask, (cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP, cf.n_Sample))
-
 
 
 
@@ -239,3 +245,26 @@ def FFT2D() :
 			print("Time to FFT2D: "+str(time.time()-t))
 		
 	#return data #fft2D to see 2D frequency domain
+
+
+
+def centered_median_filter(array, size):
+    """ pads the array such that the output is the centered sliding median"""
+    rsize = size - size // 2 - 1
+    array = np.pad(array, pad_width=((0, 0), (0, 0), (0, 0) , (0, rsize)),
+                   mode='constant', constant_values=np.nan)
+    return bn.move_median(array, size, min_count=1, axis=-1)[:, :, :, rsize:]
+
+
+def median_filter(window):
+    """ apply median filter on data to remove microphonic noise """
+    """ only on crp0 and crp1 to save some computing time"""
+
+    """ mask the data with nan where potential signal is (ROI)"""
+    med = centered_median_filter(np.where(dc.mask[0:2,:,:,:]==True, dc.data[0:2,:,:,:], np.nan), window)
+
+    """ in median computation, if everything is masked (all nan) nan is returnedso changed these cases to 0 """
+    med = np.nan_to_num(med, nan=0.)
+
+    """ apply correction to data points """
+    dc.data[0:2,:,:,:] -= med
