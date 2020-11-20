@@ -1,12 +1,13 @@
 import config as cf
 import data_containers as dc
+import lar_param as lar
 import numpy as np
 import math
 from scipy.interpolate import CubicSpline
 
 
 def complete_trajectory(track, other, view):
-    
+
     #reversed because cubic spline wants a increasing x only
     x_o = [x[0] for x in reversed(other.path)]
     z_o = [x[1] for x in reversed(other.path)]
@@ -41,7 +42,7 @@ def complete_trajectory(track, other, view):
 
     trajectory = []
     dQds       = []
-    length = 0.
+    length     = 0.
     
     for i in range(len(track.path)):
         x = track.path[i][0]
@@ -65,8 +66,8 @@ def complete_trajectory(track, other, view):
         if(a1 == 0):
             dr *= math.sqrt(1. + pow(a0,2))
         else : 
-            dr *= math.sqrt(1. + pow(a0, 2)*(1./(pow(a1,2) + 1.)))
-
+            dr *= math.sqrt(1. + pow(a0, 2)*(1./pow(a1, 2) + 1.))
+        
         length += dr
         dQds.append(track.dQ[i]/dr)
 
@@ -77,6 +78,47 @@ def complete_trajectory(track, other, view):
 
 
     return length, trajectory, dQds
+
+
+def t0_corr_from_reco(trk, tol):
+    z_top = cf.Anode_Z
+    vdrift = lar.driftVelocity()
+    z_bot = z_top - cf.n_Sample*cf.n_Sampling*vdrift/10.
+    z_short = z_top - 120. #this is a huge approximation ; to be updated !
+
+    delta_x = cf.len_det_x/2.
+    delta_y = cf.len_det_y/2.
+    
+
+    from_top  = (z_top - trk.ini_z) < 2.*tol
+    from_wall = (delta_x - math.fabs(trk.ini_x) < tol) or (delta_y - math.fabs(trk.ini_y) < tol)
+
+    exit_bot  = (math.fabs(z_bot - trk.end_z)) < 2.*tol
+    exit_wall = (delta_x - math.fabs(trk.end_x) < tol) or (delta_y - math.fabs(trk.end_y) < tol)
+
+
+    zcorr = 9999.
+    t0 = 9999.
+
+    if(from_wall or exit_wall):
+        trk.set_t0_z0_corr(t0, zcorr)
+        return
+
+    #early track case
+    if(from_top):        
+        zcorr = -(z_short - trk.end_z)
+        t0 = zcorr/vdrift
+        trk.set_t0_z0_corr(t0, zcorr)
+
+        return
+    
+
+    #later track case
+    zcorr = -(z_top-trk.ini_z)
+    t0 = zcorr/vdrift
+    trk.set_t0_z0_corr(t0, zcorr)
+    return
+
 
 
 def find_tracks(ztol, qfrac):
@@ -130,6 +172,12 @@ def find_tracks(ztol, qfrac):
             track.set_view1(l, t, q)
             track.matched(ti, tbest)
             track.angles(ti,tbest)
-
+            t0_corr_from_reco(track, 4.)
             dc.tracks3D_list.append(track)
             dc.evt_list[-1].nTracks3D += 1
+
+            """
+            if(track.len_straight_v0 > 25. and track.len_straight_v1 > 25.):
+                track.dump() 
+                print("\n")
+            """
