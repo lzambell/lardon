@@ -85,16 +85,25 @@ def map_reference_pedestal(run):
             rms = float(li[9])
             dc.map_ped[daqch].set_ref_pedestal(ped, rms)
 
-def store_raw_ped_rms():
+def store_raw_ped_rms(bad_mean_thr):
     
     compute_pedestal_mean()
     compute_pedestal_RMS()
-
+    n_bad = 0
     """ store the raw pedestal and rms """
     for i in range(cf.n_ChanTot):
         crp, view, ch = dc.map_ped[i].get_ana_chan()
         if(crp >= cf.n_CRPUsed): continue
         dc.map_ped[i].set_raw_pedestal(dc.ped_mean[crp,view,ch], dc.ped_rms[crp,view,ch])
+        if(dc.ped_mean[crp,view,ch] < bad_mean_thr):
+            n_bad += 1
+
+    return n_bad
+        
+        
+        
+
+
 
 def store_final_ped_rms():
 

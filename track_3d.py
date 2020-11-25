@@ -81,8 +81,13 @@ def complete_trajectory(track, other, view):
 
 
 def t0_corr_from_reco(trk, tol):
+    """ TO DO : detector's boundary may change from one run to another with dead channels, to be updated """
+
+
+
     z_top = cf.Anode_Z
-    vdrift = lar.driftVelocity()
+    vdrift = lar.driftVelocity()/10. #in cm mus^-1
+
     z_bot = z_top - cf.n_Sample*cf.n_Sampling*vdrift/10.
     z_short = z_top - 120. #this is a huge approximation ; to be updated !
 
@@ -90,23 +95,48 @@ def t0_corr_from_reco(trk, tol):
     delta_y = cf.len_det_y/2.
     
 
-    from_top  = (z_top - trk.ini_z) < 2.*tol
-    from_wall = (delta_x - math.fabs(trk.ini_x) < tol) or (delta_y - math.fabs(trk.ini_y) < tol)
+    from_top  = (z_top - trk.ini_z) < tol
+    exit_bot  = (math.fabs(z_bot - trk.end_z)) < tol
 
-    exit_bot  = (math.fabs(z_bot - trk.end_z)) < 2.*tol
+    from_wall = (delta_x - math.fabs(trk.ini_x) < tol) or (delta_y - math.fabs(trk.ini_y) < tol)
     exit_wall = (delta_x - math.fabs(trk.end_x) < tol) or (delta_y - math.fabs(trk.end_y) < tol)
+
+
+    if(cf.n_CRPUsed == 2):
+        from_wall = from_wall or (math.fabs(trk.ini_y) < tol)
+        exit_wall = exit_wall or (math.fabs(trk.end_y) < tol)
+
+    else: #FOR DATA WITH CRP 3 ON
+        """ start point """
+        if(trk.ini_x < 0 or trk.ini_x > 100):
+            form_wall = from_wall or (math.fabs(trk.ini_y) < tol)
+
+        else:
+            if(trk.ini_y < 0):
+                from_wall = from_wall or (math.fabs(-100. - trk.ini_y) < tol) or (math.fabs(100. - trk.ini_x) < tol) or (math.fabs(trk.ini_x) < tol)
+
+        """ end point """
+        if(trk.end_x < 0 or trk.end_x > 100):
+            exit_wall = exit_wall or (math.fabs(trk.end_y) < tol)
+
+        else:
+            if(trk.end_y < 0):
+                exit_wall = exit_wall or (math.fabs(-100. - trk.end_y) < tol) or (math.fabs(100. - trk.end_x) < tol) or (math.fabs(trk.end_x) < tol)
+
+
 
 
     zcorr = 9999.
     t0 = 9999.
 
-    if(from_wall or exit_wall):
+    """ unknown case is when track enters through wall """
+    if(from_wall):# or exit_wall):
         trk.set_t0_z0_corr(t0, zcorr)
         return
 
     #early track case
-    if(from_top):        
-        zcorr = -(z_short - trk.end_z)
+    if(from_top and not exit_wall):        
+        zcorr = (z_short - trk.end_z)
         t0 = zcorr/vdrift
         trk.set_t0_z0_corr(t0, zcorr)
 
@@ -114,14 +144,14 @@ def t0_corr_from_reco(trk, tol):
     
 
     #later track case
-    zcorr = -(z_top-trk.ini_z)
+    zcorr = (z_top-trk.ini_z)
     t0 = zcorr/vdrift
     trk.set_t0_z0_corr(t0, zcorr)
     return
 
 
 
-def find_tracks(ztol, qfrac):
+def find_tracks(ztol, qfrac, corr_d_tol):
     t_v0 = [x for x in dc.tracks2D_list if x.view == 0]
     t_v1 = [x for x in dc.tracks2D_list if x.view == 1]
     
@@ -172,12 +202,14 @@ def find_tracks(ztol, qfrac):
             track.set_view1(l, t, q)
             track.matched(ti, tbest)
             track.angles(ti,tbest)
-            t0_corr_from_reco(track, 4.)
+            t0_corr_from_reco(track, corr_d_tol)
             dc.tracks3D_list.append(track)
             dc.evt_list[-1].nTracks3D += 1
 
-            """
+
             if(track.len_straight_v0 > 25. and track.len_straight_v1 > 25.):
                 track.dump() 
+                print("slopes ini: v0 ", ti.ini_slope, " v1: ", tbest.ini_slope)
+                print("slopes end: v0 ", ti.end_slope, " v1: ", tbest.end_slope)
                 print("\n")
-            """
+

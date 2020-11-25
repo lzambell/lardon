@@ -174,10 +174,25 @@ for ievent in range(nevent):
 
     t_ped_raw = time.time()
 
-    ped.store_raw_ped_rms()
+    n_bad_ch = ped.store_raw_ped_rms(-1.5)
+    print("Nb of bad channels : ", n_bad_ch)
+    if(n_bad_ch > 100):
+        print("! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ")
+        print(" EVENT LOOKS BAD .... SKIPPING")
+        print("! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ")
+
+        gr = store.new_event(output, ievent)
+        store.store_event(output, gr)
+        store.store_pedestal(output, gr)
+        store.store_hits(output, gr)
+        store.store_tracks2D(output, gr)
+        store.store_tracks3D(output, gr)
+        continue
+    
+    
     
     print("time to compute pedestals : %.3f s"%(time.time() - t_ped_raw))
-    #plot.plot_ed_data("test", False)
+    #plot.plot_ed_data(to_be_shown=True)
     #plot.plot_ed_one_crp(0, "test", False)
     #plot.plot_wvf_single_current([(1, 1, 424), (1,1,425),(1,1,426),(3,0,259), (3,0,260),(3,0,261)], option="test", to_be_shown=True)
     tfft = time.time()
@@ -277,15 +292,15 @@ for ievent in range(nevent):
     trk2d.stitch_tracks(50., 10., 6., 0.3125, 1., 3., 1)
 
     print("time to stitch tracks %.3f"%(time.time()-tst))
-    #plot.plot_2dview_2dtracks(option='test', to_be_shown=False)
+    #plot.plot_2dview_2dtracks(option='filter', to_be_shown=False)
     
     t3d = time.time()
-    """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance """
-
-    trk3d.find_tracks(8., 0.25)
+    """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance, distance to detector boundaries for time correction (cm) """
+    trk3d.find_tracks(8., 0.25, 4.)
+ 
     print("Time build 3D tracks %.3f"%(time.time() - t3d))
 
-    #plot.plot_2dview_hits_and_3dtracks(option="filter", to_be_shown=False)
+    #plot.plot_2dview_hits_and_3dtracks(option="filter", to_be_shown=True)
     #plot.plot_3d("filter", False)
 
     dc.evt_list[-1].dump_reco()
