@@ -109,7 +109,7 @@ def t0_corr_from_reco(trk, tol):
     else: #FOR DATA WITH CRP 3 ON
         """ start point """
         if(trk.ini_x < 0 or trk.ini_x > 100):
-            form_wall = from_wall or (math.fabs(trk.ini_y) < tol)
+            from_wall = from_wall or (math.fabs(trk.ini_y) < tol)
 
         else:
             if(trk.ini_y < 0):
