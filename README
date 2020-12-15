@@ -1,21 +1,24 @@
-* * * * * * * * * * * * * * * * * * * * * * *
-* Liquid Argon Recontruction Done in PythON *
-* * * * * * * * * * * * * * * * * * * * * * *
+* * * * * * * * * * * * * * * * * * * * * * * *
+* Liquid Argon Reconstruction Done in PythON  *
+* * * * * * * * * * * * * * * * * * * * * * * *
 
 In order to run the software, one need miniconda installed :
 https://docs.conda.io/en/latest/miniconda.html#linux-installers
 
 and then install the librairies as stated in lardenv.yml : 
 conda env create -f lardenv.yml
+[It'll take about 2-3 GB!]
 
 then :
 conda activate lardenv
 
 To run lardon on data : 
-python3 reader.py -run <run nb> -sub <subfile name> -n <nb of events (optional)> -out <output file option>
+python reader.py -run <run nb> -sub <subfile name> -n <nb of events (optional)> -out <output file option>
+e.g. : python reader.py -run 1415 -sub 1_a -n 10 -out example
+Check config.py file to set numbers of CRP to be read (2 or 4 if CRP3 took data) and set the eventual problematic channels
 
 To run lardon on MC : 
-add -mc <MC root file to be read>
+add -mc <the MC root file to be read>
 the simulation will be added to a run of data (preferably a noise run!)
 
 ** CRP/VIEW CONVENTION **
@@ -34,3 +37,4 @@ the simulation will be added to a run of data (preferably a noise run!)
  
  origin in the center (at •)
  electrons drift along z axis
+ all distance are in cm

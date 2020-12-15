@@ -5,15 +5,14 @@ GENERAL
 - reconstruction parameters and run specific things (e.g. broken channel) written in an input file (+ have default values defined somewhere) : json file ?
   + values to be stored in the output file (e.g. in ./infos table)
 
-- mc file reader (to be produced as well!)
-  + module to add noise (?)
+- improve dray finder
 
+- take into account gaps between CRPs
 
-* * * * *
-ANALYSIS
-* * * * *
-- microphonic noise : FFT2D ? FFT ? Keep it like that ?
-- Fit Hits ? 
-- 2D track finder : once found, refilter in forward and backward ?
-- Track stitching : add special care to LEM (+CRP) borders ?
-- light and crt reader
+- improve 3D matching (broken tracks in one view) 
+
+- improve view extrapolation at 3D level
+
+- separate dQ and ds at storing level (for future field correction) ?
+
+- improve track timing reconstruction, in particular with off channels

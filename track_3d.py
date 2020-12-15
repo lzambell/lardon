@@ -43,7 +43,7 @@ def complete_trajectory(track, other, view):
     trajectory = []
     dQds       = []
     length     = 0.
-    
+
     for i in range(len(track.path)):
         x = track.path[i][0]
         z = track.path[i][1]
@@ -60,14 +60,19 @@ def complete_trajectory(track, other, view):
         y = float(spline(z))
         a1 = float(deriv(z))
 
+              
+
         a1 = 0. if a1 == 0 else 1./a1
+
+
         
         dr = cf.ChanPitch
+
         if(a1 == 0):
             dr *= math.sqrt(1. + pow(a0,2))
         else : 
             dr *= math.sqrt(1. + pow(a0, 2)*(1./pow(a1, 2) + 1.))
-        
+
         length += dr
         dQds.append(track.dQ[i]/dr)
 
@@ -75,8 +80,7 @@ def complete_trajectory(track, other, view):
             trajectory.append( (x, y, z) )
         else:
             trajectory.append( (y, x, z) )
-
-
+            
     return length, trajectory, dQds
 
 
@@ -137,6 +141,7 @@ def t0_corr_from_reco(trk, tol):
     #early track case
     if(from_top and not exit_wall):        
         zcorr = (z_short - trk.end_z)
+        if(zcorr > 0.): zcorr *= -1.
         t0 = zcorr/vdrift
         trk.set_t0_z0_corr(t0, zcorr)
 
@@ -186,20 +191,20 @@ def find_tracks(ztol, qfrac, corr_d_tol):
 
         if(match == True):            
             track = dc.trk3D(ti, tbest)
-
+            
             l, t, q = complete_trajectory(ti, tbest, 0)
             
-
             if(l < 0):
                 continue
-            track.set_view0(l, t, q)
-            
+            track.set_view0(t, q)
+
+
             l, t, q = complete_trajectory(tbest, ti, 1)
-
             
             if(l < 0):
                 continue
-            track.set_view1(l, t, q)
+            track.set_view1(t, q)
+
             track.matched(ti, tbest)
             track.angles(ti,tbest)
             t0_corr_from_reco(track, corr_d_tol)
@@ -207,9 +212,4 @@ def find_tracks(ztol, qfrac, corr_d_tol):
             dc.evt_list[-1].nTracks3D += 1
 
 
-            if(track.len_straight_v0 > 25. and track.len_straight_v1 > 25.):
-                track.dump() 
-                print("slopes ini: v0 ", ti.ini_slope, " v1: ", tbest.ini_slope)
-                print("slopes end: v0 ", ti.end_slope, " v1: ", tbest.end_slope)
-                print("\n")
-
+            
