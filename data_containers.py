@@ -376,14 +376,14 @@ class trk3D:
         self.nHits_v0   = tv0.nHits
         self.nHits_v1   = tv1.nHits
 
-        self.len_straight_v0 = tv0.len_straight
-        self.len_straight_v1 = tv1.len_straight
+        self.len_straight_v0 = -1#tv0.len_straight
+        self.len_straight_v1 = -1#tv1.len_straight
 
         self.len_path_v0 = -1 #tv0.len_path
         self.len_path_v1 = -1 #tv1.len_path
 
-        self.tot_charge_v0 = tv0.tot_charge
-        self.tot_charge_v1 = tv1.tot_charge
+        self.tot_charge_v0 = -1#tv0.tot_charge
+        self.tot_charge_v1 = -1#tv1.tot_charge
 
         self.ini_theta = -1
         self.end_theta = -1
@@ -407,15 +407,29 @@ class trk3D:
         self.dQds_v0 = []
         self.dQds_v1 = []
 
-    def set_view0(self, length, path, dqds):
-        self.len_path_v0 = length
+    def set_view0(self, path, dqds):
+        self.len_straight_v0 = math.sqrt( pow(path[0][0]-path[-1][0], 2) + pow(path[0][1]-path[-1][1],2) + pow(path[0][2]-path[-1][2],2) )     
+        self.len_path_v0 = 0.
+
+        for i in range(len(path)-1):
+            self.len_path_v0 +=  math.sqrt( pow(path[i][0]-path[i+1][0], 2) + pow(path[i][1]-path[i+1][1],2)+ pow(path[i][2]-path[i+1][2],2) )
+            
+        #self.len_path_v0 = length
+
         self.path_v0     = path
         self.dQds_v0     = dqds
-        
-    def set_view1(self, length, path, dqds):
-        self.len_path_v1 = length
+        self.tot_charge_v0 = sum(dqds)
+
+    def set_view1(self, path, dqds):
+        self.len_straight_v1 = math.sqrt( pow(path[0][0]-path[-1][0], 2) + pow(path[0][1]-path[-1][1],2) + pow(path[0][2]-path[-1][2],2) )     
+
+        self.len_path_v1 = 0.
+        for i in range(len(path)-1):
+            self.len_path_v1 +=  math.sqrt( pow(path[i][0]-path[i+1][0], 2) + pow(path[i][1]-path[i+1][1],2)+ pow(path[i][2]-path[i+1][2],2) )
+
         self.path_v1     = path
         self.dQds_v1     = dqds
+        self.tot_charge_v1 = sum(dqds)
 
     def matched(self, tv0, tv1):
         tv0.matched = evt_list[-1].nTracks3D
@@ -442,6 +456,6 @@ class trk3D:
         
     def dump(self):
         print(" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)"%(self.ini_x, self.ini_y, self.ini_z, self.end_x, self.end_y, self.end_z))
-        print(" %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_v0, self.len_path_v1, self.len_straight_v0, self.len_straight_v1))
+        print(" theta, phi: [ini] %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> [end] %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_v0, self.len_path_v1, self.len_straight_v0, self.len_straight_v1))
         print(" corr : %.2f cm / %.2f mus"%(self.z0_corr, self.t0_corr))
-
+        print(" charge V0: %.2f, V1: %.2f A= %.3f"%(self.tot_charge_v0, self.tot_charge_v1, (self.tot_charge_v0-self.tot_charge_v1)/(self.tot_charge_v0+self.tot_charge_v1)))
