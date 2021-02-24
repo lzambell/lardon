@@ -1,0 +1,56 @@
+#WEIRD EVENT HUNTER
+bad_evt_thresh: -0.5 #mean pedestal theshold (in adc)
+bad_evt_nchan: 1000 #max nb of channel below thesh
+
+fft_lowpasscut: 0.06 #MHz   
+fft_freqlines: [] #in MHz (not recommanded)
+roi_n_iter: 2
+roi_adc_thresh: 6. #in ADC
+roi_signal_thresh: 4. #as in x ped.rms
+roi_signal_thresh_2: 2.5 # as in x ped. rms
+coherent_groups: [320, 64] #shouldnt be too small
+median_window: 400 #in time bins, to remove microphonic noise
+
+#HIT FINDER
+hit_pad_left: 5 #in nb of ticks
+hit_pad_right: 10 #in nb of ticks
+hit_min_dt: 20 #in nb of ticks
+hit_thr1: 3. # x ped rms (to find a hit)
+hit_thr2: 6. # x ped rms (to distinguish a multi hit)
+
+
+#CLUSTERING
+clus_use_dbscan: False
+# as list to make N pass
+clus_dbscan_eps: [15., 30.] #radius to seach (cm)
+clus_dbscan_npts: [10, 5] #min. nb of hits in circle to make a cluster
+clus_dbscan_ysqueez: [1., 0.05] #stretch time axis to actually have a seaching ellipse
+
+clus_use_mst: True
+clus_mst_radius: 10 #in cm
+clus_mst_npts: 5 #min nb of hits to make a cluster
+
+
+#2D TRACKS
+#Pierre Filter input parameters
+pfilt_posErr: 0.3125 #error on hit position
+pfilt_slopeErr: 1.
+pfilt_pbeta: 3. #initial track pbeta guess, although this might be not well estimated in np02 given the short anyway
+
+#2D Reconstruction, as a list to make N pass
+trk2d_npts: [10, 4] #min nb of hits
+trk2d_rcut: [6., 8.] #radius (cm) to search nearby hits to update filter
+trk2d_chi2: [8., 12.] #max chi2 to accept hit in the track
+
+
+#2D STITCHING
+trk2d_stitch_dmin: 50. #(cm) min. distance in between 2 tracks end point
+trk2d_stitch_slope: 10. #slope tolerance (in sigma)
+trk2d_stitch_dma: 6. #extrapolated distance tolerance (in cm)
+
+
+#3D TRACKS
+trk3d_ztol: 8. #z start/end agreement cut (cm)
+trk3d_qbal: 0.25 #Qv0/Qv1 charge balance cut
+trk3d_dbound: 4. #distance to detector boundaries for time correction (cm)
+

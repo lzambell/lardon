@@ -16,3 +16,4 @@ dependencies:
   - vitables
   - colorcet
   - bottleneck
+  - pyyaml

@@ -3,7 +3,7 @@ import data_containers as dc
 import math
 import numpy as np
 from operator import itemgetter
-import sklearn.neighbors as skn
+#import sklearn.neighbors as skn
 import scipy.stats as stat
 import scipy.spatial as spatial
 import scipy.sparse.csgraph as csgr
@@ -72,7 +72,7 @@ def dump_track(idx):
     print(" ")
     
 
-def find_tracks(min_hits, rcut, chicut, y_err, slope_err, pbeta, matchID):
+def find_tracks(min_hits, rcut, chicut, y_err, slope_err, pbeta):
 
     """error on y axis, error on slope, pbeta hyp"""
     filt = pf.PFilter(y_err, slope_err, pbeta)
@@ -401,7 +401,7 @@ def refilter_and_find_drays(idtrk, y_err, slope_err, pbeta):
     
 
 
-def stitch_tracks(dist_min, slope_err_tol, r_extrapol_min, chicut, y_err, slope_err, pbeta):
+def stitch_tracks(dist_min, slope_err_tol, r_extrapol_min, y_err, slope_err, pbeta):
 
 
     dc.tracks2D_list.sort()
