@@ -1,7 +1,8 @@
 import sys
 import os
-import numpy as np
 import time 
+
+import numpy as np
 import tables as tables
 
 import config as cf
@@ -10,7 +11,6 @@ import data_containers as dc
 import pedestals as ped
 import channelmapper as cmap
 import read_event as read
-#import plot_event as plot_ev
 import noise_filter as noise
 import hitfinder as hf
 import clustering as clus
@@ -21,6 +21,7 @@ import read_mc as mc
 
 import plotting as plot
 
+import reconstruction_parameters as reco
 
 def need_help():
     print("Usage: python reader.py ")
@@ -28,12 +29,14 @@ def need_help():
     print(" -sub <sub file ex: 10_a> ")
     print(" -n   <number of event to process>  [default (or -1) is all]")
     print(" -out <output name optn>")
+    print(" -reco <reconstruction parameter's file> [default is default_reco.yaml]")
     print(" -type <evt type cosmics/ped/...> [default is cosmics]")
     print(" -mc <simulation root file to be added to noise>") 
     print(" -h print this message")
 
     sys.exit()
     
+
 
 if len(sys.argv) == 1:
     need_help()
@@ -43,19 +46,12 @@ else:
             need_help()
             
 
-""" Reconstruction parameters """
-lowpasscut       = 0.06 #0.1 #MHz    
-freqlines        = []#0.0234, 0.0625, 0.0700] #in MHz
-signal_thresh    = 4.
-signal_thresh_2  = 2.5
-adc_thresh       = 6.
-coherent_groups  = [320, 64]#, 8]#[64,32,8]
-
 outname_option = ""
 nevent = -1 
 evt_type = "cosmics"          
 mc_file  = ""
 addMC = False
+reco_param = cf.default_reco
 
 for index, arg in enumerate(sys.argv):
     if arg in ['-run'] and len(sys.argv) > index + 1:
@@ -64,6 +60,8 @@ for index, arg in enumerate(sys.argv):
         evt_file = sys.argv[index + 1]
     elif arg in ['-n'] and len(sys.argv) > index + 1:
         nevent = int(sys.argv[index + 1])
+    elif arg in ['-reco'] and len(sys.argv) > index + 1:
+        reco_param = sys.argv[index + 1]
     elif arg in ['-type'] and len(sys.argv) > index + 1:
         evt_type = sys.argv[index + 1]
     elif arg in ['-out'] and len(sys.argv) > index + 1:
@@ -71,7 +69,7 @@ for index, arg in enumerate(sys.argv):
     elif arg in ['-mc'] and len(sys.argv) > index + 1:
         addMC = True
         mc_file = sys.argv[index + 1]
-    
+        
 
 tstart = time.time()
 
@@ -86,11 +84,23 @@ else:
 name_out = cf.store_path + "/" + run_n + "_" + evt_file + outname_option + ".h5"
 
 if(os.path.exists(name_in) is False):
-    print(" ERROR ! file ", name_in, " do not exists ! ")
+    print(" ERROR ! data file ", name_in, " do not exists ! ")
     sys.exit()
+
+
+
+if(os.path.exists(reco_param) is False):
+    print(" ERROR ! reco file ", reco_param, " do not exists ! ")
+    sys.exit()
+else:
+    myreco = reco.Reco(reco_param)
 
 data = open(name_in, "rb")
 output = tables.open_file(name_out, mode="w", title="Reconstruction Output")
+
+
+#output_test = tables.open_file(name_out.replace(".h5", "_lite.h5"), mode="w", title="Reconstruction Output Light")
+#store.create_temp(output_test)
 
 
 
@@ -115,7 +125,7 @@ if(addMC):
     
     
 store.store_infos(output, run_n, evt_file, nevent, time.time())
- 
+
 sequence = []
 for i in range(nb_evt):
     seq  = np.fromfile( data, dtype='<u4', count=4)
@@ -128,7 +138,7 @@ for i in range(nb_evt-1):
     data.seek(sequence[i], 1)
     """ get the byte position of each event """
     event_pos.append( data.tell() ) 
-""" End of run header reading part """
+    """ End of run header reading part """
 
 
 for ibrok in cf.daq_broken_channels:
@@ -142,6 +152,7 @@ for crp, view, vch in cf.crp_broken_channels:
 
 plot.set_style()
 for ievent in range(nevent):
+
     print("-*-*-*-*-*-*-*-*-*-*-")
     print(" READING EVENT ", ievent)
     print("-*-*-*-*-*-*-*-*-*-*-")
@@ -164,7 +175,7 @@ for ievent in range(nevent):
 
     if(run_nb <= cf.run_inv_signal):
         dc.data *= -1.    
-    
+        
     elif(cf.n_CRPUsed > 2):
         #should ask dario if this is fixed and if so, when
         dc.data[3,:,:,:] *= -1.
@@ -174,13 +185,15 @@ for ievent in range(nevent):
 
     t_ped_raw = time.time()
 
-    n_bad_ch = ped.store_raw_ped_rms(-1.5)
+    n_bad_ch = ped.store_raw_ped_rms(myreco.param['bad_evt_thresh'])
     print("Nb of bad channels : ", n_bad_ch)
-    if(n_bad_ch > 100):
+
+    if(n_bad_ch > myreco.param['bad_evt_nchan']):
         print("! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ")
         print(" EVENT LOOKS BAD .... SKIPPING")
         print("! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ")
-
+        print("nb of bad channels ", n_bad_ch)
+        #plot.plot_ed_data(option="microspark", to_be_shown=False)
         gr = store.new_event(output, ievent)
         store.store_event(output, gr)
         store.store_pedestal(output, gr)
@@ -188,17 +201,20 @@ for ievent in range(nevent):
         store.store_tracks2D(output, gr)
         store.store_tracks3D(output, gr)
         continue
-    
+
     
     
     print("time to compute pedestals : %.3f s"%(time.time() - t_ped_raw))
-    #plot.plot_ed_data(to_be_shown=True)
-    #plot.plot_ed_one_crp(0, "test", False)
+    #plot.plot_ed_data(option="", to_be_shown=True)
+    #plot.plot_ed_one_crp(0, "test", True)
+    #plot.plot_ed_one_crp(1, "test", True)
+    #plot.plot_ed_one_crp(3, "test", True)
     #plot.plot_wvf_single_current([(1, 1, 424), (1,1,425),(1,1,426),(3,0,259), (3,0,260),(3,0,261)], option="test", to_be_shown=True)
+    #continue
     tfft = time.time()
 
     #ps = 
-    noise.FFTLowPass(lowpasscut, freqlines)
+    noise.FFTLowPass(myreco.param['fft_lowpasscut'], myreco.param['fft_freqlines'])
 
 
     #noise.FFT2D()
@@ -209,19 +225,19 @@ for ievent in range(nevent):
 
 
     """ 1st ROI attempt based on ADC cut + broken channels """
-    noise.define_ROI_ADC(adc_thresh)
+    noise.define_ROI_ADC(myreco.param['roi_adc_thresh'])
     print("adc cut roi based %.2f"%(time.time() - tadc))
 
 
     """ Update ROI based on ped rms """
     troi = time.time()
-    noise.define_ROI(signal_thresh, 2)    
+    noise.define_ROI(myreco.param['roi_signal_thresh'], myreco.param['roi_n_iter']) 
     t3 = time.time()
     print(" 1st ROi : %.2f"% (t3-troi))
 
 
     """Apply coherent filter(s) """
-    noise.coherent_filter(coherent_groups)
+    noise.coherent_filter(myreco.param['coherent_groups'])
 
     print(" time to coh filt %.2f"%( time.time() - t3))
     #wvf_filt = dc.data[1,0,380,:].copy()    
@@ -231,27 +247,32 @@ for ievent in range(nevent):
     t4 = time.time()    
 
     """ Update ROI regions """
-    noise.define_ROI(signal_thresh, 2)
+    noise.define_ROI(myreco.param['roi_signal_thresh'], myreco.param['roi_n_iter'])
     print(" time to ROI %.2f"%(time.time() - t4))
 
     t5 = time.time()
-    noise.median_filter(400)
+    noise.median_filter(myreco.param['median_window'])
 
     print("time to median filter ", time.time()-t5)
     t6 = time.time()
 
+    #plot.plot_ed_data(option="pres_filt", to_be_shown=False)
+
     """ Update ROI regions """
-    noise.define_ROI(signal_thresh_2, 2)
+    noise.define_ROI(myreco.param['roi_signal_thresh_2'], myreco.param['roi_n_iter'])
     print(" time to ROI %.2f"%(time.time() - t6))
 
 
     """ final pedestal mean and rms """
     ped.store_final_ped_rms()
 
-    
     t6 = time.time()
     """ parameters : pad left (n ticks) pad right (n ticks), min dt, thr1, thr2 """
-    hf.hit_finder(5, 10, 20, 3., 6.)
+    hf.hit_finder(myreco.param['hit_pad_left'], 
+                  myreco.param['hit_pad_right'], 
+                  myreco.param['hit_min_dt'], 
+                  myreco.param['hit_thr1'], 
+                  myreco.param['hit_thr2'])
 
     print(" time to Hit Search %.3f"%(time.time() - t6))
     
@@ -259,15 +280,17 @@ for ievent in range(nevent):
 
     
     """ 1st search for most of the tracks"""
-    """parameters : eps (cm), min pts, y axis squeeze"""
-    #clus.dbscan(15, 10, 1.)
+    if(myreco.param['clus_use_dbscan']):
+        """parameters : eps (cm), min pts, y axis squeeze"""
+        for e, n, s in zip(myreco.param['clus_dbscan_eps'], 
+                           myreco.param['clus_dbscan_npts'], 
+                           myreco.param['clus_dbscan_ysqueez']):
+            clus.dbscan(e, n, s)
 
-    """2nd search for vertical tracks not yet clustered """
-    #clus.dbscan(30, 5, 0.05)
-
-    
-    """ parameters : search radius (cm), min nb of hits in cluster """
-    clus.mst(10, 5)
+    if(myreco.param['clus_use_mst']):
+        """ parameters : search radius (cm), min nb of hits in cluster """
+        clus.mst(myreco.param['clus_mst_radius'],
+                 myreco.param['clus_mst_npts'])
 
     tclus = time.time()
     print("time to cluster %.3f"%(tclus-t7)) 
@@ -276,11 +299,16 @@ for ievent in range(nevent):
 
     t8 = time.time()
 
-    """parameters : min nb hits, rcut, chi2cut, y error, slope error, pbeta"""
-    trk2d.find_tracks(10, 6., 8., 0.3125, 1., 3., 1)
 
-    """parameters : min nb hits, rcut, chi2cut, y error, slope error, pbeta"""
-    trk2d.find_tracks(4, 8., 12., 0.3125, 1., 3., 2)
+    for n, r, c in zip(myreco.param['trk2d_npts'],
+                       myreco.param['trk2d_rcut'],
+                       myreco.param['trk2d_chi2']):
+
+        """parameters : min nb hits, rcut, chi2cut, y error, slope error, pbeta"""
+        trk2d.find_tracks(n, r, c, 
+                          myreco.param['pfilt_posErr'], 
+                          myreco.param['pfilt_slopeErr'], 
+                          myreco.param['pfilt_pbeta'])
 
 
     t9 = time.time()
@@ -289,19 +317,26 @@ for ievent in range(nevent):
 
     tst = time.time()
     """ parameters are : min distance in between 2 tracks end points, slope error tolerance, extrapolated distance tolerance + filter input parameters"""
-    trk2d.stitch_tracks(50., 10., 6., 0.3125, 1., 3., 1)
+    trk2d.stitch_tracks(myreco.param['trk2d_stitch_dmin'],
+                        myreco.param['trk2d_stitch_slope'],
+                        myreco.param['trk2d_stitch_dma'],
+                        myreco.param['pfilt_posErr'], 
+                        myreco.param['pfilt_slopeErr'], 
+                        myreco.param['pfilt_pbeta'])
 
     print("time to stitch tracks %.3f"%(time.time()-tst))
     #plot.plot_2dview_2dtracks(option='filter', to_be_shown=False)
     
     t3d = time.time()
     """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance, distance to detector boundaries for time correction (cm) """
-    trk3d.find_tracks(8., 0.25, 4.)
- 
+    trk3d.find_tracks(myreco.param['trk3d_ztol'],
+                      myreco.param['trk3d_qbal'],
+                      myreco.param['trk3d_dbound'])
+    
     print("Time build 3D tracks %.3f"%(time.time() - t3d))
 
-    #plot.plot_2dview_hits_and_3dtracks(option="filter", to_be_shown=True)
-    #plot.plot_3d("filter", False)
+    #plot.plot_2dview_hits_and_3dtracks(option="pres", to_be_shown=False)
+    #plot.plot_3d("pres", False)
 
     dc.evt_list[-1].dump_reco()
 
@@ -313,9 +348,11 @@ for ievent in range(nevent):
     store.store_hits(output, gr)
     store.store_tracks2D(output, gr)
     store.store_tracks3D(output, gr)
-    print("time to store %.3f"%(time.time()-tstore))
+    #store.store_tracks3D_test(output_test)
+    #print("time to store %.3f"%(time.time()-tstore))
 
 data.close()
 output.close()
+#output_test.close()
 tottime = time.time() - tstart
 print(" TOTAL RUNNING TIME %.2f s == %.2f s/evt"% (tottime, tottime/nevent))
