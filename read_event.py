@@ -54,7 +54,6 @@ def read_event(data, idx, iev):
 
     shape_and_store( read_evt_uint12_nb( data.read(cro)) , 1)
 
-    #v = 
     check_and_merge_events(v0, v1, iev)
     return 0
     
@@ -82,7 +81,7 @@ def shape_and_store(data_raw, vread):
         crp, view, vch = dc.map_ped[idq+shift].get_ana_chan()
 
         if(view != vread): continue
-        if(crp > 1): continue #Do not care about CRP 2 & 3 ATM
+        if(crp >= cf.n_CRPUsed): continue 
         pedval = dc.map_ped[idq+shift].ref_ped 
 
         if(crp < 0 or view < 0 or vch < 0):
@@ -104,7 +103,7 @@ def read_evt_uint12_nb(data):
         mid_uint8=np.uint16(data[i*3+1])
         lst_uint8=np.uint16(data[i*3+2])
 
-        out[i*2] =   (fst_uint8 << 4) + (mid_uint8 >> 4)
+        out[i*2]   = (fst_uint8 << 4) + (mid_uint8 >> 4)
         out[i*2+1] = ((mid_uint8 % 16) << 8) + lst_uint8
 
     return out
@@ -113,8 +112,6 @@ def read_evt_uint12_nb(data):
 def read_evt_uint12(data):
     #solution from 
     #https://stackoverflow.com/questions/44735756/python-reading-12-bit-binary-files
-    #could be faster with numba
-
 
     tt = np.frombuffer(data, dtype=np.uint8)
     

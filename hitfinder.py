@@ -7,7 +7,7 @@ import numpy as np
 
 """numba slows down this code!"""
 #@nb.jit(forceobj=True,nopython=True)
-def hit_search(data,crp,view,channel,start, dt_min, thr1, thr2):
+def hit_search(data,crp,view,channel,start, dt_min, thr1, thr2):#, pad_l, pad_r):
     """search hit-shape in a list of points"""
     """algorithm from qscan"""
     
@@ -62,12 +62,23 @@ def hit_search(data,crp,view,channel,start, dt_min, thr1, thr2):
             hitFlag = False
             h.stop = it-1
 
-            if((singleHit and (h.stop-h.start >= dt_min)) or not singleHit):
+            #if((singleHit and (h.stop-h.start >= dt_min)) or not singleHit):
+            if(h.stop-h.start >= dt_min):
                 ll.append(h)
 
         i+=1
     return ll
 
+
+
+def recompute_hit_charge(hit):
+    crp, view, ch, start, stop = hit.crp, hit.view, hit.channel, hit.start, hit.stop
+    val = 0.
+    mean = dc.ped_mean[crp, view, ch]
+    for t in range(start, stop):
+        val += dc.data[crp, view, ch, t] - mean
+
+    hit.charge = val
 
 def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2): 
     
@@ -122,13 +133,45 @@ def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2):
             
             adc = dc.data[crp, view, channel, tdc_start:tdc_stop+1]                
 
-            thr1 = n_sig_1 * dc.ped_rms[crp, view, channel]
-            thr2 = n_sig_2 * dc.ped_rms[crp, view, channel]
+            thr1 = dc.ped_mean[crp, view, channel] + n_sig_1 * dc.ped_rms[crp, view, channel]
+            thr2 = dc.ped_mean[crp, view, channel] + n_sig_2 * dc.ped_rms[crp, view, channel]
 
-            if(thr1 < 1): thr1 = 1.
-            if(thr2 < 1): thr2 = 1.
+            if(thr1 < 0.5): thr1 = 0.5
+            if(thr2 < 0.5): thr2 = 0.5
 
             hh = hit_search(adc, crp, view, channel, tdc_start, dt_min, thr1, thr2)
+
+
+            """add padding to found hits"""
+            for i in range(len(hh)): 
+                """ to the left """
+                if(i == 0): 
+                    if(hh[i].start > pad_left):
+                        hh[i].start -= pad_left
+                    else:
+                        hh[i].start = 0
+                else:
+                    if(hh[i].start - pad_left > hh[i-1].stop):
+                        hh[i].start -= pad_left
+                    else:
+                        hh[i].start = hh[i-1].stop + 1
+                
+
+                """ to the right """
+                if(i == len(hh)-1):
+                    if(hh[i].stop < cf.n_Sample - pad_right):
+                        hh[i].stop += pad_right
+                    else:
+                        hh[i].stop = cf.n_Sample
+                else:
+                    if(hh[i].stop + pad_right < hh[i+1].start):
+                        hh[i].stop += pad_right
+                    else:
+                        hh[i].stop = hh[i+1].start - 1
+
+
+
+
 
             dc.evt_list[-1].nHits[crp,view] += len(hh)
             dc.hits_list.extend(hh)
@@ -140,7 +183,8 @@ def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2):
     print("Drift Velocity : v = %.3f mm/mus"%v)
 
     """ transforms hit channel and tdc to positions """
-    [x.hit_positions(v, cf.ChanPitch) for x in dc.hits_list]
+    [x.hit_positions(v) for x in dc.hits_list]
 
     """ compute hit charge in fC """
+    [recompute_hit_charge(x) for x in dc.hits_list]
     [x.hit_charge() for x in dc.hits_list]

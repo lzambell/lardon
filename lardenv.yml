@@ -14,3 +14,6 @@ dependencies:
   - numexpr
   - pytables
   - vitables
+  - colorcet
+  - bottleneck
+  - pyyaml
