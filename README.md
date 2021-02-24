@@ -1,5 +1,5 @@
 # Liquid Argon Reconstruction Done in PythON
-![Logo](./figs/lardon.png?raw=true ) 
+![Logo](./figs/lardon.png?sanitize=true&raw=true ) 
 
 
 ## Librairies needed to run lardon
