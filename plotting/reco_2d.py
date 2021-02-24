@@ -223,7 +223,7 @@ def plot_2dcrp_hits(option=None, to_be_shown=False):
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
 
-    plt.savefig('ED/hit_crp'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/hit_crp'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
 
     if(to_be_shown):
         plt.show()
@@ -258,7 +258,7 @@ def plot_2dview_hits(option=None, to_be_shown=False):
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
 
-    plt.savefig('ED/hit_view'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/hit_view'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
@@ -311,7 +311,7 @@ def plot_2dcrp_clusters(option=None, to_be_shown=False):
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
 
-    plt.savefig('ED/cluster_2dcrp'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/cluster_2dcrp'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
@@ -350,7 +350,7 @@ def plot_2dview_clusters(option=None, to_be_shown=False):
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
 
-    plt.savefig('ED/cluster_2dview'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/cluster_2dview'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
@@ -385,7 +385,7 @@ def plot_2dview_2dtracks(option=None, to_be_shown=False):
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
-    plt.savefig('ED/alltrack2D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/alltrack2D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
@@ -442,7 +442,7 @@ def plot_2dview_hits_2dtracks(option=None, to_be_shown=False):
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
-    plt.savefig('ED/track2D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/track2D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
@@ -504,7 +504,7 @@ def plot_2dview_hits_and_3dtracks(option=None, to_be_shown=False):
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
-    plt.savefig('ED/track3D_proj'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/track3D_proj'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
