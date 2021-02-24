@@ -1,5 +1,5 @@
 # Liquid Argon Reconstruction Done in PythON
-![Logo](./figs/lardon.png?raw=true)
+![Logo](figs/lardon.png)
 
 
 ## Librairies needed to run lardon
@@ -37,7 +37,7 @@ the simulation will be added to a run of data (preferably a noise only run!)
 
 
 ## lardon CRP/VIEW Convention
-![convention](./figs/lardon_convention.pdf?raw=true)
+![convention](figs/lardon_convention.png)
 
 * electrons drift along z axis - the cathode is at z=-300cm
 * all distance are in cm
