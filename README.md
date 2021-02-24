@@ -1,5 +1,5 @@
 # Liquid Argon Reconstruction Done in PythON
-![Logo](figs/lardon.png)
+![Logo](figs/lardon_logo.png)
 
 
 ## Librairies needed to run lardon
@@ -42,6 +42,8 @@ the simulation will be added to a run of data (preferably a noise only run!)
 * electrons drift along z axis - the cathode is at z=-300cm
 * all distance are in cm
 
+## Reconstruction Parameters
+The file **default_reco.yaml** contains all parameters needed for the reconstruction. If you want to change/add parameters, you can create your own **.yaml** file, following the `name: value` format. You don't have to copy all variables, the default one will be taken. 
 
 ## Control Plots
 By default, no control plots are produced, but you can call the plotting functions in **reader.py** anywhere in the reconstruction loop.
