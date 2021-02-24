@@ -1,5 +1,5 @@
 # Liquid Argon Reconstruction Done in PythON
-![Logo](./figs/lardon.png)
+![Logo](./figs/lardon.png?raw=true)
 
 
 ## Librairies needed to run lardon
@@ -20,14 +20,13 @@ Check and modify **config.py** :
 * *store_path* : your directory where the output file will be stored
 * *plot_path*  : your directory where control plots will be stored
 * Comment/uncomment run specific parameters (Nb of CRP used in the reconstruction, broken channels, drift field, ...)
-
- :information_source: : This should be automatized soon-ish
+(:information_source: This should be automatized soon-ish))
 
 
 ## To run lardon on data
 `python reader.py -run <run nb> -sub <subfile name> -n <nb of events (optional)> -out <output file option>`
 
-*e.g.* : python reader.py -run 1415 -sub 1_a -n 10 -out example
+*e.g.* : `python reader.py -run 1415 -sub 1_a -n 10 -out example`
 
 ## To run lardon on MC : 
 add `-mc the_mc_root_file.root`
@@ -38,7 +37,7 @@ the simulation will be added to a run of data (preferably a noise only run!)
 
 
 ## lardon CRP/VIEW Convention
-![convention](./figs/lardon_convention.pdf)
+![convention](./figs/lardon_convention.pdf?raw=true)
 
 * electrons drift along z axis - the cathode is at z=-300cm
 * all distance are in cm
