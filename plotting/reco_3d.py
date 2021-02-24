@@ -101,7 +101,7 @@ def plot_3d(option=None, to_be_shown=True):
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
 
-    plt.savefig('ED/track3D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/track3D'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()

@@ -61,7 +61,7 @@ def plot_wvf_single_current(wvf_list, adc_min=-1, adc_max=-1, option=None, to_be
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
-    plt.savefig('ED/waveforms'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/waveforms'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
@@ -103,7 +103,7 @@ def plot_wvf_multi_current(wvf_list, adc_min=-1, adc_max=-1, option=None, to_be_
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
-    plt.savefig('ED/waveforms_multi'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/waveforms_multi'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
@@ -148,7 +148,7 @@ def plot_wvf_evo(data, title="", legends=[], adc_min=-1, adc_max=-1, option=None
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
-    plt.savefig('ED/waveform_evo'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/waveform_evo'+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()

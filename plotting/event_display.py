@@ -11,7 +11,7 @@ import colorcet as cc
 
 
 adc_min = -5
-adc_max = 5
+adc_max = 25
 cmap_ed = cc.cm.linear_tritanopic_krjcw_5_95_c24_r
 
 
@@ -22,6 +22,7 @@ def draw(crp, view, ax=None, t_min = -1, t_max = -1, ch_min = -1, ch_max = -1):
     ax.imshow(dc.data[crp, view, :, :].transpose(), 
               origin = 'lower', 
               aspect = 'auto', 
+              #interpolation='none',
               cmap   = cmap_ed,
               vmin   = adc_min, 
               vmax   = adc_max)
@@ -70,7 +71,7 @@ def plot_ed_zoom(crp, view, t_min = -1, t_max = -1, ch_min = -1, ch_max = -1, op
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
-    plt.savefig('ED/ed_zoom_crp_'+str(crp)+'_v'+str(view)+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/ed_zoom_crp_'+str(crp)+'_v'+str(view)+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
@@ -146,14 +147,17 @@ def plot_ed(crp_list, nameout="", option=None, to_be_shown=False):
     run_nb = str(dc.evt_list[-1].run_nb)
     evt_nb = str(dc.evt_list[-1].evt_nb_glob)
 
-    plt.savefig('ED/ed_'+nameout+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
+    plt.savefig(cf.plot_path+'/ed_'+nameout+option+'_run_'+run_nb+'_evt_'+evt_nb+'.png')
     if(to_be_shown):
         plt.show()
     plt.close()
 
 
 def plot_ed_data(option=None, to_be_shown=False):
-    plot_ed(crp_list=[0,1,3], nameout="data", option=option, to_be_shown=to_be_shown)
+    if(cf.n_CRPUsed==4):
+        plot_ed(crp_list=[0,1,3], nameout="data", option=option, to_be_shown=to_be_shown)
+    else:
+        plot_ed_two_crps(crp1=0, crp2=1, option=option, to_be_shown=to_be_shown)
 
 def plot_ed_one_crp(crp, option=None, to_be_shown=False):
     plot_ed(crp_list=[crp], nameout="crp_"+str(crp), option=option, to_be_shown=to_be_shown)
