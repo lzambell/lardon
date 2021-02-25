@@ -1,7 +1,8 @@
 #WEIRD EVENT HUNTER
-bad_evt_thresh: -0.5 #mean pedestal theshold (in adc)
-bad_evt_nchan: 1000 #max nb of channel below thesh
+bad_evt_thresh: -0.5 #mean pedestal thershold (in adc)
+bad_evt_nchan: 1000 #max nb of channel below thresh
 
+#NOISE FILTERING
 fft_lowpasscut: 0.06 #MHz   
 fft_freqlines: [] #in MHz (not recommanded)
 roi_n_iter: 2

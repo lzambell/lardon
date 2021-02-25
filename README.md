@@ -20,13 +20,23 @@ Check and modify **config.py** :
 * *store_path* : your directory where the output file will be stored
 * *plot_path*  : your directory where control plots will be stored
 * Comment/uncomment run specific parameters (Nb of CRP used in the reconstruction, broken channels, drift field, ...)
-(:information_source: This should be automatized soon-ish))
+(:information_source: This should be automatized soon-ish)
 
 
 ## To run lardon on data
-`python reader.py -run <run nb> -sub <subfile name> -n <nb of events (optional)> -out <output file option>`
+To launch lardon, type `python reader.py` with the following options:
+* `-run <run nb>` which run number
+* `-sub <subfile name>` which subfile (*e.g.* 1_a)
+* `-n <nb of events>` how many events to process, default is -1=all file
+* `-out <output file option>` optional extra name for the output
+* `-type <type of data>` for the special runs, default is cosmic
+* `-reco <your_reco_parameters.yaml>` if you want to change some reconstruction parameters, default uses **default_reco.yaml**
 
-*e.g.* : `python reader.py -run 1415 -sub 1_a -n 10 -out example`
+*e.g.* : To run the first 10 events of run 1415, subfile 5_b, type :
+
+`python reader.py -run 1415 -sub 5_b -n 10 -out example`
+
+the output h5file will be **store_path/1415_5_b_example.h5**
 
 ## To run lardon on MC : 
 add `-mc the_mc_root_file.root`

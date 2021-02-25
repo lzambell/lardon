@@ -10,7 +10,7 @@ dependencies:
   - pandas
   - scikit-learn
   - scipy
-  - uproot
+  - uproot = 3.11.3
   - numexpr
   - pytables
   - vitables
