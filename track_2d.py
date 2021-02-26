@@ -393,9 +393,10 @@ def refilter_and_find_drays(idtrk, y_err, slope_err, pbeta):
 
     for l in drays:
         h = hits[l]
-        track.add_drays(h.X, h.Z, h.charge)
-        h.set_match(-1*h.matched)
-    
+        if(h.matched >= 0):
+            track.add_drays(h.X, h.Z, h.charge)
+            h.set_match(-1*h.matched)
+
     track.finalize_track()
 
     

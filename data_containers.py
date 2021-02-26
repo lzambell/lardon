@@ -9,7 +9,7 @@ hits_list = []
 tracks2D_list = []
 tracks3D_list = []
 
-data = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP, cf.n_Sample)) #crp, view, vchan
+data = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP, cf.n_Sample), dtype=np.float32) #crp, view, vchan
 
 
 """
@@ -26,8 +26,8 @@ False : broken
 alive_chan = np.ones((cf.n_CRPUsed,cf.n_View, cf.n_ChanPerCRP, cf.n_Sample), dtype=bool)
 
 
-ped_rms = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP)) 
-ped_mean = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP)) 
+ped_rms = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP), dtype=np.float32) 
+ped_mean = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP), dtype=np.float32) 
 
 def reset_event():
     data[:,:,:,:] = 0.
@@ -206,14 +206,14 @@ class trk2D:
             if(t[0] == x and t[1] == y and self.dQ[p]==q):
                 pos = p
                 break
-        #print("removing at position ", pos)
+
         if(pos >= 0):
             self.path.pop(pos)
             self.dQ.pop(pos)
             self.nHits -= 1
             self.tot_charge -= q
         else:
-            print("?! cannot remove hit ", x, " ", y, " ", q)
+            print("?! cannot remove hit ", x, " ", y, " ", q, " pos ", pos)
             
     def add_hit(self, x, y, q):
         self.nHits += 1
