@@ -376,14 +376,14 @@ class trk3D:
         self.nHits_v0   = tv0.nHits
         self.nHits_v1   = tv1.nHits
 
-        self.len_straight_v0 = -1#tv0.len_straight
-        self.len_straight_v1 = -1#tv1.len_straight
+        self.len_straight_v0 = -1
+        self.len_straight_v1 = -1
 
-        self.len_path_v0 = -1 #tv0.len_path
-        self.len_path_v1 = -1 #tv1.len_path
+        self.len_path_v0 = -1 
+        self.len_path_v1 = -1 
 
-        self.tot_charge_v0 = -1#tv0.tot_charge
-        self.tot_charge_v1 = -1#tv1.tot_charge
+        self.tot_charge_v0 = -1
+        self.tot_charge_v1 = -1
 
         self.ini_theta = -1
         self.end_theta = -1
@@ -393,19 +393,28 @@ class trk3D:
         self.t0_corr = 0.
         self.z0_corr = 0.
 
+        self.t0_field_corr = 0.
+        self.z0_field_corr = 0.
+
         self.ini_x = tv0.path[0][0]
         self.ini_y = tv1.path[0][0]
         self.ini_z = 0.5*(tv0.path[0][1] + tv1.path[0][1])
+
 
         self.end_x = tv0.path[-1][0]
         self.end_y = tv1.path[-1][0]
         self.end_z = 0.5*(tv0.path[-1][1] + tv1.path[-1][1])
 
-        
+
         self.path_v0 = []
         self.path_v1 = []
         self.dQds_v0 = []
         self.dQds_v1 = []
+
+        self.z_field_corr_v0 = []
+        self.z_field_corr_v1 = []
+        self.dQds_field_corr_v0 = []
+        self.dQds_field_corr_v1 = []
 
     def set_view0(self, path, dqds):
         self.len_straight_v0 = math.sqrt( pow(path[0][0]-path[-1][0], 2) + pow(path[0][1]-path[-1][1],2) + pow(path[0][2]-path[-1][2],2) )     
@@ -414,11 +423,10 @@ class trk3D:
         for i in range(len(path)-1):
             self.len_path_v0 +=  math.sqrt( pow(path[i][0]-path[i+1][0], 2) + pow(path[i][1]-path[i+1][1],2)+ pow(path[i][2]-path[i+1][2],2) )
             
-        #self.len_path_v0 = length
 
         self.path_v0     = path
         self.dQds_v0     = dqds
-        self.tot_charge_v0 = sum(dqds)
+        self.tot_charge_v0 = sum(q for q,s in dqds)
 
     def set_view1(self, path, dqds):
         self.len_straight_v1 = math.sqrt( pow(path[0][0]-path[-1][0], 2) + pow(path[0][1]-path[-1][1],2) + pow(path[0][2]-path[-1][2],2) )     
@@ -429,7 +437,7 @@ class trk3D:
 
         self.path_v1     = path
         self.dQds_v1     = dqds
-        self.tot_charge_v1 = sum(dqds)
+        self.tot_charge_v1 = sum(q for q,s in dqds)
 
     def matched(self, tv0, tv1):
         tv0.matched = evt_list[-1].nTracks3D
@@ -439,6 +447,15 @@ class trk3D:
         self.t0_corr = t0
         self.z0_corr = z0
 
+    def set_field_correction(self, t0, z0, z_path_v0, z_path_v1, dqds_v0, dqds_v1):
+        self.t0_field_corr = t0
+        self.z0_field_corr = z0
+        self.z_field_corr_v0 = z_path_v0
+        self.z_field_corr_v1 = z_path_v1
+        self.dQds_field_corr_v0 = dqds_v0
+        self.dQds_field_corr_v1 = dqds_v1
+
+        
     def angles(self, tv0, tv1):
 
         """ initial angles """
