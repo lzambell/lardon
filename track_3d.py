@@ -3,12 +3,12 @@ import data_containers as dc
 import lar_param as lar
 import numpy as np
 import math
-from scipy.interpolate import CubicSpline
+from scipy.interpolate import UnivariateSpline
 
 
 def complete_trajectory(track, other, view):
 
-    #reversed because cubic spline wants a increasing x only
+    #reversed because spline wants an increasing x only
     x_o = [x[0] for x in reversed(other.path)]
     z_o = [x[1] for x in reversed(other.path)]
 
@@ -17,24 +17,18 @@ def complete_trajectory(track, other, view):
     z_o, x_o = (list(t) for t in zip(*sorted(zip(z_o, x_o))))
 
 
+    """ spline needs unique 'x' points to work --> remove duplicate """
+    z_o_unique, idx = np.unique(z_o, return_index=True)
+    x_o = np.asarray(x_o)
+    x_o_unique = x_o[idx]
 
-    """ ugly fix to remove multiple hits at the same z """
-    if(len(z_o) != len(set(z_o))) :
-        i=1
-        while(i < len(z_o)):
-            if(z_o[i-1] >= z_o[i]):
-                del z_o[i]
-                del x_o[i]
-            else:
-                i += 1
-        
 
     """at least 3 points for the spline """
-    if(len(z_o) < 4):
+    if(len(z_o_unique) < 4):
         return -1, [], []
 
 
-    spline = CubicSpline(z_o, x_o)
+    spline = UnivariateSpline(z_o_unique, x_o_unique)
     deriv = spline.derivative()
 
     a0, a1 = 0., 0.
@@ -43,11 +37,17 @@ def complete_trajectory(track, other, view):
     trajectory = []
     dQds       = []
     length     = 0.
+    zfield     = []
+
+    
+
 
     for i in range(len(track.path)):
         x = track.path[i][0]
         z = track.path[i][1]
+        y = float(spline(z))
 
+        
         if( i == 0 ):
             a0 = 0. if track.ini_slope == 0 else 1./track.ini_slope
         else:
@@ -55,9 +55,10 @@ def complete_trajectory(track, other, view):
             dy = 0.
             dz = track.path[i][1] - track.path[i-1][1]
             
+
             a0 = 0. if dx == 0 else dz/dx
 
-        y = float(spline(z))
+
         a1 = float(deriv(z))
 
               
