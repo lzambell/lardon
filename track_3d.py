@@ -1,6 +1,7 @@
 import config as cf
 import data_containers as dc
 import lar_param as lar
+import field_param as field
 import numpy as np
 import math
 from scipy.interpolate import UnivariateSpline
@@ -37,10 +38,6 @@ def complete_trajectory(track, other, view):
     trajectory = []
     dQds       = []
     length     = 0.
-    zfield     = []
-
-    
-
 
     for i in range(len(track.path)):
         x = track.path[i][0]
@@ -55,17 +52,11 @@ def complete_trajectory(track, other, view):
             dy = 0.
             dz = track.path[i][1] - track.path[i-1][1]
             
-
             a0 = 0. if dx == 0 else dz/dx
 
 
-        a1 = float(deriv(z))
-
-              
-
+        a1 = float(deriv(z))              
         a1 = 0. if a1 == 0 else 1./a1
-
-
         
         dr = cf.ChanPitch
 
@@ -75,7 +66,8 @@ def complete_trajectory(track, other, view):
             dr *= math.sqrt(1. + pow(a0, 2)*(1./pow(a1, 2) + 1.))
 
         length += dr
-        dQds.append(track.dQ[i]/dr)
+
+        dQds.append( (track.dQ[i], dr) )
 
         if(view == 0):
             trajectory.append( (x, y, z) )
@@ -87,8 +79,6 @@ def complete_trajectory(track, other, view):
 
 def t0_corr_from_reco(trk, tol):
     """ TO DO : detector's boundary may change from one run to another with dead channels, to be updated """
-
-
 
     z_top = cf.Anode_Z
     vdrift = lar.driftVelocity()/10. #in cm mus^-1
@@ -129,32 +119,128 @@ def t0_corr_from_reco(trk, tol):
                 exit_wall = exit_wall or (math.fabs(-100. - trk.end_y) < tol) or (math.fabs(100. - trk.end_x) < tol) or (math.fabs(trk.end_x) < tol)
 
 
-
-
-    zcorr = 9999.
+    z0 = 9999.
     t0 = 9999.
 
     """ unknown case is when track enters through wall """
     if(from_wall):# or exit_wall):
-        trk.set_t0_z0_corr(t0, zcorr)
+        trk.set_t0_z0_corr(t0, z0)
         return
 
     #early track case
     if(from_top and not exit_wall):        
-        zcorr = (z_short - trk.end_z)
-        if(zcorr > 0.): zcorr *= -1.
-        t0 = zcorr/vdrift
-        trk.set_t0_z0_corr(t0, zcorr)
-
+        z0 = (z_short - trk.end_z)
+        if(z0 > 0.): z0 *= -1.
+        t0 = z0/vdrift
+        trk.set_t0_z0_corr(t0, z0)
         return
     
 
     #later track case
-    zcorr = (z_top-trk.ini_z)
-    t0 = zcorr/vdrift
-    trk.set_t0_z0_corr(t0, zcorr)
+    z0 = (z_top-trk.ini_z)
+    t0 = z0/vdrift
+    trk.set_t0_z0_corr(t0, z0)
     return
 
+
+def compute_field_correction(trk):
+    """ corrects z and ds from a field parametrization """
+
+    x0, y0 = trk.ini_x, trk.ini_y
+    z0 = trk.z0_corr
+
+    if(z0 == 9999.):
+        z0 = 0.
+
+    vnom = lar.driftVelocity(cf.E_drift)
+
+    z0_field = z0*lar.driftVelocity(field.field_moy(x0, y0))/vnom
+    t0_field = z0/lar.driftVelocity(field.field_moy(x0, y0))
+
+    
+    """ View 0 """
+
+    z_path_corr_v0 = []
+    dQds_corr_v0 = []
+
+    for i in range(trk.nHits_v0):
+        x, y, z = trk.path_v0[i][0], trk.path_v0[i][1], trk.path_v0[i][2]
+        E_moy = field.field_moy(x, y)
+
+        dq = trk.dQds_v0[i][0]
+
+        r_field = lar.recombination(E_moy)
+        dq /= r_field
+
+        z_field = 300. - (300.-z)*lar.driftVelocity(E_moy)/vnom
+        z_corr_field = z_field + z0_field
+        
+
+        z_path_corr_v0.append(z_corr_field)
+        
+        if(i==0):
+            dq0 = dq
+        if(i>0):
+            dx = x - trk.path_v0[i-1][0]
+            dy = y - trk.path_v0[i-1][1]
+            dz = z_corr_field - z_path_corr_v0[i-1]
+
+            a0 = 0. if dx == 0 else dz/dx
+            a1 = 0. if dy == 0 else dz/dy
+
+            dr = cf.ChanPitch
+            if(a1 == 0):
+                dr *= math.sqrt(1. + pow(a0,2))
+            else : 
+                dr *= math.sqrt(1. + pow(a0, 2)*(1./pow(a1, 2) + 1.))
+
+            if(i==1):
+                dQds_corr_v0.append( (dq0, dr) )
+            dQds_corr_v0.append( (dq, dr) )
+
+
+
+    """ View 1 """
+
+    z_path_corr_v1 = []
+    dQds_corr_v1 = []
+
+    for i in range(trk.nHits_v1):
+        x, y, z = trk.path_v1[i][0], trk.path_v1[i][1], trk.path_v1[i][2]
+        E_moy = field.field_moy(x, y)
+
+        dq = trk.dQds_v1[i][0]
+
+        r_field = lar.recombination(E_moy)
+        dq /= r_field
+
+        z_field = 300. - (300.-z)*lar.driftVelocity(E_moy)/vnom
+        z_corr_field = z_field + z0_field
+        
+
+        z_path_corr_v1.append(z_corr_field)
+        
+        if(i==0):
+            dq0 = dq
+        if(i>0):
+            dx = x - trk.path_v1[i-1][0]
+            dy = y - trk.path_v1[i-1][1]
+            dz = z_corr_field - z_path_corr_v1[i-1]
+
+            a0 = 0. if dy == 0 else dz/dy
+            a1 = 0. if dx == 0 else dz/dx
+
+            dr = cf.ChanPitch
+            if(a1 == 0):
+                dr *= math.sqrt(1. + pow(a0,2))
+            else : 
+                dr *= math.sqrt(1. + pow(a0, 2)*(1./pow(a1, 2) + 1.))
+
+            if(i==1):
+                dQds_corr_v1.append( (dq0, dr) )
+            dQds_corr_v1.append( (dq, dr) )
+
+    trk.set_field_correction(t0_field, z0_field, z_path_corr_v0, z_path_corr_v1, dQds_corr_v0, dQds_corr_v1)
 
 
 def find_tracks(ztol, qfrac, corr_d_tol):
@@ -209,6 +295,7 @@ def find_tracks(ztol, qfrac, corr_d_tol):
             track.matched(ti, tbest)
             track.angles(ti,tbest)
             t0_corr_from_reco(track, corr_d_tol)
+            compute_field_correction(track)
             dc.tracks3D_list.append(track)
             dc.evt_list[-1].nTracks3D += 1
 

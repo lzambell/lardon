@@ -80,8 +80,8 @@ if(outname_option):
 else:
     outname_option = ""
     
-#name_out = cf.store_path +"/" + run_n + "/" + run_n + "_" + evt_file + outname_option + ".h5"
-name_out = cf.store_path + "/" + run_n + "_" + evt_file + outname_option + ".h5"
+name_out = cf.store_path +"/" + run_n + "/" + run_n + "_" + evt_file + outname_option + ".h5"
+#name_out = cf.store_path + "/" + run_n + "_" + evt_file + outname_option + ".h5"
 
 if(os.path.exists(name_in) is False):
     print(" ERROR ! data file ", name_in, " do not exists ! ")
@@ -99,8 +99,8 @@ data = open(name_in, "rb")
 output = tables.open_file(name_out, mode="w", title="Reconstruction Output")
 
 
-#output_test = tables.open_file(name_out.replace(".h5", "_lite.h5"), mode="w", title="Reconstruction Output Light")
-#store.create_temp(output_test)
+output_test = tables.open_file(name_out.replace(".h5", "_lite.h5"), mode="w", title="Reconstruction Output Light")
+store.create_temp(output_test)
 
 
 
@@ -205,7 +205,7 @@ for ievent in range(nevent):
     
     
     print("time to compute pedestals : %.3f s"%(time.time() - t_ped_raw))
-    #plot.plot_ed_data(option="", to_be_shown=True)
+    #plot.plot_ed_data(option="", to_be_shown=False)
     #plot.plot_ed_one_crp(0, "test", True)
     #plot.plot_ed_one_crp(1, "test", True)
     #plot.plot_ed_one_crp(3, "test", True)
@@ -348,11 +348,11 @@ for ievent in range(nevent):
     store.store_hits(output, gr)
     store.store_tracks2D(output, gr)
     store.store_tracks3D(output, gr)
-    #store.store_tracks3D_test(output_test)
+    store.store_tracks3D_test(output_test)
     #print("time to store %.3f"%(time.time()-tstore))
 
 data.close()
 output.close()
-#output_test.close()
+output_test.close()
 tottime = time.time() - tstart
 print(" TOTAL RUNNING TIME %.2f s == %.2f s/evt"% (tottime, tottime/nevent))

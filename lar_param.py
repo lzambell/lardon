@@ -3,9 +3,17 @@ import config as cf
 import numpy as np
 import math
 
-def driftVelocity():
+def driftVelocity(E=cf.E_drift):
+    """ for E > 0.5 kV/cm : 
+    Walkowiak NIM A 449 (2000) 288
+    for E < 0.5 kV/cm :
+    ICARUS NIM A 516 (2004) 68
+    """
+
+
     T = cf.LAr_Temperature
-    E = cf.E_drift
+    #E = cf.E_drift
+
 
     T_walk = 90.371 #K
     walk = [-0.01481, -0.0075, 0.141, 12.4, 1.627, 0.317]
@@ -29,4 +37,14 @@ def driftVelocity():
         vd = vd * tmp2/tmp1
 
     return vd # in mm/us
-        
+
+
+def recombination(E=cf.E_drift):
+    """ following ICARUS NIM A 523 (2004) 275 """
+    A = 0.8
+    k = 0.0486
+    rho = 1.39
+    alpha = 0.83
+    dEdx = 2.11 #for muon at mip
+
+    return A/(1.+(k/E)*dEdx/rho)
