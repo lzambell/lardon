@@ -221,13 +221,60 @@ def store_tracks3D(h5file, group):
         t3d['z0_corr']    = t.z0_corr
         t3d['t0_corr']    = t.t0_corr
 
-        pts_v0 = [[p[0], p[1], p[2], q] for p,q in zip(t.path_v0,t.dQds_v0)]
-        pts_v1 = [[p[0], p[1], p[2], q] for p,q in zip(t.path_v1,t.dQds_v1)]
+        pts_v0 = [[p[0], p[1], p[2], q[0]/q[1], pc, qc[0]/qc[1]] for p,q,pc,qc in zip(t.path_v0, t.dQds_v0, t.z_field_corr_v0, t.dQds_field_corr_v0)]
+        pts_v1 = [[p[0], p[1], p[2], q[0]/q[1], pc, qc[0]/qc[1]] for p,q,pc,qc in zip(t.path_v1, t.dQds_v1, t.z_field_corr_v1, t.dQds_field_corr_v1)]
         
 
-        h5file.create_array(t3d_hits_v0, 'track_%i'%(i), np.asarray(pts_v0), 'track hits')
-        h5file.create_array(t3d_hits_v1, 'track_%i'%(i), np.asarray(pts_v1), 'track hits')
+        h5file.create_array(t3d_hits_v0, 'track_%i'%(i), np.asarray(pts_v0), 'track hits and charge (x, y, z, dqdx, zcorr, dqdx corr)')
+        h5file.create_array(t3d_hits_v1, 'track_%i'%(i), np.asarray(pts_v1), 'track hits and charge (x, y, z, dqdx, zcorr, dqdx corr)')
         i += 1
 
         t3d.append()
     table.flush()
+
+
+
+def create_temp(h5file):
+    table = h5file.create_table("/", 'tracks3D', Tracks3D, "Tracks 3D")           
+    t = h5file.create_vlarray("/", 'pathv0', Float32Atom(shape=(6)), "Path V0 (x, y, z, q, zcorr, qcorr)")    
+    t = h5file.create_vlarray("/", 'pathv1', Float32Atom(shape=(6)), "Path V1 (x, y, z, q, zcorr, qcorr)")    
+       
+
+def store_tracks3D_test(h5file):    
+    t3d = h5file.root.tracks3D.row
+    vlv0  = h5file.root.pathv0
+    vlv1  = h5file.root.pathv1
+
+    for t in dc.tracks3D_list:
+        t3d['crp_ini']   = t.ini_crp
+        t3d['crp_end']   = t.end_crp
+
+        t3d['x_ini']     = t.ini_x
+        t3d['y_ini']     = t.ini_y
+        t3d['z_ini']     = t.ini_z
+        t3d['x_end']     = t.end_x
+        t3d['y_end']     = t.end_y
+        t3d['z_end']     = t.end_z
+
+        t3d['chi2']      = t.chi2
+        t3d['nHits']     = [t.nHits_v0, t.nHits_v1]
+        t3d['len_straight'] = [t.len_straight_v0, t.len_straight_v1]
+        t3d['len_path']     = [t.len_path_v0, t.len_path_v1]
+        t3d['total_charge'] = [t.tot_charge_v0, t.tot_charge_v1]
+
+
+        t3d['theta_ini'] = t.ini_theta
+        t3d['theta_end'] = t.end_theta
+        t3d['phi_ini']   = t.ini_phi
+        t3d['phi_end']   = t.end_phi
+
+        t3d['z0_corr']    = t.z0_corr
+        t3d['t0_corr']    = t.t0_corr
+
+        pts_v0 = [[p[0], p[1], p[2], q[0]/q[1], pc, qc[0]/qc[1]] for p,q,pc,qc in zip(t.path_v0, t.dQds_v0, t.z_field_corr_v0, t.dQds_field_corr_v0)]
+        pts_v1 = [[p[0], p[1], p[2], q[0]/q[1], pc, qc[0]/qc[1]] for p,q,pc,qc in zip(t.path_v1, t.dQds_v1, t.z_field_corr_v1, t.dQds_field_corr_v1)]
+
+        t3d.append()
+        vlv0.append(pts_v0)
+        vlv1.append(pts_v1)
+    #table.flush()
