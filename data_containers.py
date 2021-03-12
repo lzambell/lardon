@@ -9,6 +9,7 @@ hits_list = []
 tracks2D_list = []
 tracks3D_list = []
 
+
 data = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP, cf.n_Sample), dtype=np.float32) #crp, view, vchan
 
 
@@ -29,6 +30,20 @@ alive_chan = np.ones((cf.n_CRPUsed,cf.n_View, cf.n_ChanPerCRP, cf.n_Sample), dty
 ped_rms = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP), dtype=np.float32) 
 ped_mean = np.zeros((cf.n_CRPUsed, cf.n_View, cf.n_ChanPerCRP), dtype=np.float32) 
 
+
+CRP_gap = np.zeros( (cf.n_View, cf.n_CRP, cf.n_CRP), dtype=np.float32)
+
+CRP_gap[0, 0, 1] = cf.crp_01_x/2.
+CRP_gap[0, 1, 0] = -cf.crp_01_x/2.
+CRP_gap[1, 0, 1] = cf.crp_01_y/2.
+CRP_gap[1, 1, 0] = -cf.crp_01_y/2.
+
+CRP_gap[0, 0, 3] = cf.crp_03_x/2.
+CRP_gap[0, 3, 0] = -cf.crp_03_x/2.
+CRP_gap[1, 0, 3] = cf.crp_03_y/2.
+CRP_gap[1, 3, 0] = -cf.crp_03_y/2.
+
+
 def reset_event():
     data[:,:,:,:] = 0.
     mask[:,:,:,:] = True
@@ -38,6 +53,7 @@ def reset_event():
     hits_list.clear()
     tracks2D_list.clear()
     tracks3D_list.clear()
+    evt_list.clear()
 
     [x.reset() for x in map_ped]
 
@@ -92,25 +108,30 @@ class event:
     def __eq__(self, other):
         return (self.run_nb, self.evt_nb_glob, self.evt_nb_loc, self.time_s, self.time_ns, self.evt_flag) == (other.run_nb, other.evt_nb_glob, other.evt_nb_loc, other.time_s, other.time_ns, other.evt_flag)
 
-    def dump(self):
-        print("RUN ",self.run_nb, " EVENT ", self.evt_nb_loc, " / ", self.evt_nb_glob,)
-        print("Taken at ", time.ctime(self.time_s), " + ", self.time_ns, " ns ")
-        print(" TS = ", self.time_s, " +", self.time_ns)
-    def dump_reco(self):
-        print("\n*-*-*-* Reconstruction Summary *-*-*-*")
-        for icrp in range(cf.n_CRPUsed):
-            for iv in range(cf.n_View):
-                print("CRP ", icrp, " View ", iv, " : ")
-                print("\tNb of Hits :", self.nHits[icrp,iv])
-                print("\tNb of Clusters :", self.nClusters[icrp,iv])
-        print("\n")
-        for iv in range(cf.n_View):
-            print("View ", iv)
-            print("\tNb of 2D tracks :", self.nTracks2D[iv])
+    def dump(self, verb):
+        if(verb is True):
 
-        print("\n")
-        print("--> Nb of 3D tracks ", self.nTracks3D)
-        print("\n")
+            print("RUN ",self.run_nb, " EVENT ", self.evt_nb_loc, " / ", self.evt_nb_glob,)
+            print("Taken at ", time.ctime(self.time_s), " + ", self.time_ns, " ns ")
+            print(" TS = ", self.time_s, " +", self.time_ns)
+
+    def dump_reco(self, verb):
+        if(verb is True):
+
+            print("\n*-*-*-* Reconstruction Summary *-*-*-*")
+            for icrp in range(cf.n_CRPUsed):
+                for iv in range(cf.n_View):
+                    print("CRP ", icrp, " View ", iv, " : ")
+                    print("\tNb of Hits :", self.nHits[icrp,iv])
+                    print("\tNb of Clusters :", self.nClusters[icrp,iv])
+            print("\n")
+            for iv in range(cf.n_View):
+                print("View ", iv)
+                print("\tNb of 2D tracks :", self.nTracks2D[iv])
+
+            print("\n")
+            print("--> Nb of 3D tracks ", self.nTracks3D)
+            print("\n")
 
 
 class hits:
@@ -297,14 +318,26 @@ class trk2D:
 
 
     def x_extrapolate(self, other, rcut):
-        xa, za = self.path[-1][0], self.path[-1][1]
-        xb, zb = other.path[0][0], other.path[0][1]
+        view = self.view
+        a_crp = self.end_crp
+        b_crp = other.ini_crp
 
+        xa = self.path[-1][0] + CRP_gap[view,a_crp,b_crp]
+        za = self.path[-1][1]
+        xb = other.path[0][0] + CRP_gap[view,b_crp,a_crp]
+        zb = other.path[0][1]
         return ( math.fabs( xb - (xa+(zb-za)*self.end_slope)) < rcut) and (math.fabs( xa-(xb+(za-zb)*other.ini_slope)) < rcut)
 
     def z_extrapolate(self, other, rcut):
-        xa, za = self.path[-1][0], self.path[-1][1]
-        xb, zb = other.path[0][0], other.path[0][1]
+        view = self.view
+        a_crp = self.end_crp
+        b_crp = other.ini_crp
+
+        xa = self.path[-1][0] + CRP_gap[view,a_crp,b_crp]
+        za = self.path[-1][1]
+        xb = other.path[0][0] + CRP_gap[view,b_crp,a_crp]
+        zb = other.path[0][1]
+
         if(self.end_slope == 0 and other.ini_slope == 0) : 
             return True
 
@@ -361,8 +394,10 @@ class trk2D:
                self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1],2) )        
         
 
-    def mini_dump(self):
-        print("[", self.ini_crp, " -> ", self.end_crp,",",self.view,"] from (%.1f,%.1f)"%(self.path[0][0], self.path[0][1]), " to (%.1f, %.1f)"%(self.path[-1][0], self.path[-1][1]), " N = ", self.nHits, " L = %.1f/%.1f"%(self.len_straight, self.len_path), " Q = ", self.tot_charge )
+    def mini_dump(self, verb):
+        if(verb is True):
+            if(self.ini_crp != self.end_crp):            
+                print("view : ", self.view, " [", self.ini_crp, " -> ", self.end_crp,",",self.view,"] from (%.1f,%.1f)"%(self.path[0][0], self.path[0][1]), " to (%.1f, %.1f)"%(self.path[-1][0], self.path[-1][1]), " N = ", self.nHits, " L = %.1f/%.1f"%(self.len_straight, self.len_path), " Q = ", self.tot_charge )
                
 
 class trk3D:
@@ -392,6 +427,22 @@ class trk3D:
 
         self.t0_corr = 0.
         self.z0_corr = 0.
+
+        """ field corrected """
+        self.len_straight_field_corr_v0 = -1
+        self.len_straight_field_corr_v1 = -1
+
+        self.len_path_field_corr_v0 = -1 
+        self.len_path_field_corr_v1 = -1 
+
+        self.tot_charge_field_corr_v0 = -1
+        self.tot_charge_field_corr_v1 = -1
+
+        self.ini_theta_field_corr = -1
+        self.end_theta_field_corr = -1
+        self.ini_phi_field_corr = -1
+        self.end_phi_field_corr = -1
+
 
         self.t0_field_corr = 0.
         self.z0_field_corr = 0.
@@ -455,6 +506,21 @@ class trk3D:
         self.dQds_field_corr_v0 = dqds_v0
         self.dQds_field_corr_v1 = dqds_v1
 
+        self.tot_charge_field_corr_v0 = sum(q for q,s in dqds_v0)
+        self.tot_charge_field_corr_v1 = sum(q for q,s in dqds_v1)
+
+        self.len_straight_field_corr_v0 = math.sqrt( pow(self.path_v0[0][0]-self.path_v0[-1][0], 2) + pow(self.path_v0[0][1]-self.path_v0[-1][1],2) + pow(z_path_v0[0]-z_path_v0[-1],2) )     
+
+        self.len_straight_field_corr_v1 = math.sqrt( pow(self.path_v1[0][0]-self.path_v1[-1][0], 2) + pow(self.path_v1[0][1]-self.path_v1[-1][1],2) + pow(z_path_v1[0]-z_path_v1[-1],2) )     
+
+        self.len_path_field_corr_v0 = 0.
+        for i in range(self.nHits_v0-1):
+            self.len_path_field_corr_v0 +=  math.sqrt( pow(self.path_v0[i][0]-self.path_v0[i+1][0], 2) + pow(self.path_v0[i][1]-self.path_v0[i+1][1],2)+ pow(z_path_v0[i]-z_path_v0[i+1],2) )
+
+        self.len_path_field_corr_v1 = 0.
+        for i in range(self.nHits_v1-1):
+            self.len_path_field_corr_v1 +=  math.sqrt( pow(self.path_v1[i][0]-self.path_v1[i+1][0], 2) + pow(self.path_v1[i][1]-self.path_v1[i+1][1],2)+ pow(z_path_v1[i]-z_path_v1[i+1],2) )
+
         
     def angles(self, tv0, tv1):
 
@@ -471,8 +537,13 @@ class trk3D:
         self.end_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),-1.))
 
         
-    def dump(self):
-        print(" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)"%(self.ini_x, self.ini_y, self.ini_z, self.end_x, self.end_y, self.end_z))
-        print(" theta, phi: [ini] %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> [end] %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_v0, self.len_path_v1, self.len_straight_v0, self.len_straight_v1))
-        print(" corr : %.2f cm / %.2f mus"%(self.z0_corr, self.t0_corr))
-        print(" charge V0: %.2f, V1: %.2f A= %.3f"%(self.tot_charge_v0, self.tot_charge_v1, (self.tot_charge_v0-self.tot_charge_v1)/(self.tot_charge_v0+self.tot_charge_v1)))
+    def dump(self, verb):
+        if(verb is True):
+            print(" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)"%(self.ini_x, self.ini_y, self.ini_z, self.end_x, self.end_y, self.end_z))
+            print(" theta, phi: [ini] %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> [end] %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_v0, self.len_path_v1, self.len_straight_v0, self.len_straight_v1))
+            print(" corr : %.2f cm / %.2f mus"%(self.z0_corr, self.t0_corr))
+            print(" charge V0: %.2f, V1: %.2f A= %.3f"%(self.tot_charge_v0, self.tot_charge_v1, (self.tot_charge_v0-self.tot_charge_v1)/(self.tot_charge_v0+self.tot_charge_v1)))
+            print("field corrected ")
+            print(" theta, phi: [ini] %.2f ; %.2f"%(self.ini_theta_field_corr, self.ini_phi_field_corr), " -> [end] %.2f ; %.2f "%( self.end_theta_field_corr, self.end_phi_field_corr), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_field_corr_v0, self.len_path_field_corr_v1, self.len_straight_field_corr_v0, self.len_straight_field_corr_v1))
+            print(" corr : %.2f cm / %.2f mus"%(self.z0_field_corr, self.t0_field_corr))
+            print(" charge V0: %.2f, V1: %.2f A= %.3f"%(self.tot_charge_field_corr_v0, self.tot_charge_field_corr_v1, (self.tot_charge_field_corr_v0-self.tot_charge_field_corr_v1)/(self.tot_charge_field_corr_v0+self.tot_charge_field_corr_v1)))
