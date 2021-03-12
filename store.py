@@ -80,6 +80,11 @@ class Tracks3D(IsDescription):
     len_path     = Float16Col(shape=(cf.n_View))
     total_charge   = Float16Col(shape=(cf.n_View))
 
+    len_straight_field_corr = Float16Col(shape=(cf.n_View))
+    len_path_field_corr     = Float16Col(shape=(cf.n_View))
+    total_charge_field_corr   = Float16Col(shape=(cf.n_View))
+
+
     z0_corr = Float16Col()
     t0_corr = Float16Col()
     
@@ -212,6 +217,10 @@ def store_tracks3D(h5file, group):
         t3d['len_path']     = [t.len_path_v0, t.len_path_v1]
         t3d['total_charge'] = [t.tot_charge_v0, t.tot_charge_v1]
 
+        t3d['len_straight_field_corr'] = [t.len_straight_field_corr_v0, t.len_straight_field_corr_v1]
+        t3d['len_path_field_corr']     = [t.len_path_field_corr_v0, t.len_path_field_corr_v1]
+        t3d['total_charge_field_corr'] = [t.tot_charge_field_corr_v0, t.tot_charge_field_corr_v1]
+
 
         t3d['theta_ini'] = t.ini_theta
         t3d['theta_end'] = t.end_theta
@@ -261,6 +270,11 @@ def store_tracks3D_test(h5file):
         t3d['len_straight'] = [t.len_straight_v0, t.len_straight_v1]
         t3d['len_path']     = [t.len_path_v0, t.len_path_v1]
         t3d['total_charge'] = [t.tot_charge_v0, t.tot_charge_v1]
+
+
+        t3d['len_straight_field_corr'] = [t.len_straight_field_corr_v0, t.len_straight_field_corr_v1]
+        t3d['len_path_field_corr']     = [t.len_path_field_corr_v0, t.len_path_field_corr_v1]
+        t3d['total_charge_field_corr'] = [t.tot_charge_field_corr_v0, t.tot_charge_field_corr_v1]
 
 
         t3d['theta_ini'] = t.ini_theta

@@ -86,7 +86,6 @@ def map_reference_pedestal(run):
             dc.map_ped[daqch].set_ref_pedestal(ped, rms)
 
 def store_raw_ped_rms(bad_mean_thr):
-    
     compute_pedestal_mean()
     compute_pedestal_RMS()
     n_bad = 0

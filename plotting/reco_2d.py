@@ -510,4 +510,3 @@ def plot_2dview_hits_and_3dtracks(option=None, to_be_shown=False):
     plt.close()
 
 
-
