@@ -39,7 +39,6 @@ def coherent_filter(groupings):
     """
 
     for group in groupings:
-        print("apply coherent filter in groups of", group)
         if( (cf.n_ChanPerCRP % group) > 0):
             print(" Coherent Noise Filter in groups of ", group, " is not a possible ! ")
             return

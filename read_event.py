@@ -129,8 +129,9 @@ def check_and_build_event(header):
 
     good_evt = (header['evt_flag'][0] & 0x3F) == evdcard0
 
+    #print("header event flag is ", header['evt_flag'][0])
     if(not good_evt):
-        print(" problem, the event is marked as bad -->")
+        print(" problem, the event is marked as bad ... ")
         #return throw_bad_event(), -1, -1
 
     ev = dc.event(header['run_num'][0], header['evt_num'][0], header['time_s'][0], header['time_ns'][0], good_evt)

@@ -298,6 +298,7 @@ def find_tracks(ztol, qfrac, corr_d_tol):
             compute_field_correction(track)
             dc.tracks3D_list.append(track)
             dc.evt_list[-1].nTracks3D += 1
-
+            
+            #dc.tracks3D_list[-1].dump()
 
             

@@ -19,8 +19,7 @@ then : `conda activate lardenv`
 Check and modify **config.py** :
 * *store_path* : your directory where the output file will be stored
 * *plot_path*  : your directory where control plots will be stored
-* Comment/uncomment run specific parameters (Nb of CRP used in the reconstruction, broken channels, drift field, ...)
-(:information_source: This should be automatized soon-ish)
+* Update `np02/runs.yaml` if needed
 
 
 ## To run lardon on data

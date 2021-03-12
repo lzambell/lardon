@@ -31,12 +31,6 @@ def fit_slopes(n, t):
 
     slope_err = see * np.sqrt( 1./sx2) if sx2 != 0 else 0.
 
-    """
-    print("initial : ")
-    print("was %.3f +/ %.3f"%(t.ini_slope, t.ini_slope_err))
-    print("now %.3f +/ %.3f"%(slope, slope_err))
-    """
-
     t.ini_slope = slope
     t.ini_slope_err = slope_err
 
@@ -48,11 +42,6 @@ def fit_slopes(n, t):
     sx2 = ((pts[:,0]-mx)**2).sum()
     slope_err = see * np.sqrt( 1./sx2) if sx2 != 0 else 0.
 
-    """
-    print("ending : ")
-    print("was %.3f +/ %.3f"%(t.end_slope, t.end_slope_err))
-    print("now %.3f +/ %.3f"%(slope, slope_err))
-    """
     t.end_slope = slope
     t.end_slope_err = slope_err
 
@@ -117,9 +106,9 @@ def find_tracks(min_hits, rcut, chicut, y_err, slope_err, pbeta):
                     """gets NN indices within rcut, 
                     first nearest point is itself"""
                     nn = tree.query_ball_point(X[idx], rcut, return_sorted=True)#[1:]
-                    #print(" seeding with ", idx)
+
                     nn = [k for k in nn if (k != idx) and (visited[k] == 0)]
-                    #print(nn)
+
 
 
                     """double rcut in case nothing found on first trial"""
@@ -250,7 +239,6 @@ def find_tracks(min_hits, rcut, chicut, y_err, slope_err, pbeta):
                                 trackID += 1
                             continue
 
-    print("nb of 2D tracks ", len(dc.tracks2D_list))
     return
     
 

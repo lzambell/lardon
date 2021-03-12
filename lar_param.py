@@ -10,7 +10,6 @@ def driftVelocity(E=cf.E_drift):
     ICARUS NIM A 516 (2004) 68
     """
 
-
     T = cf.LAr_Temperature
     #E = cf.E_drift
 
@@ -45,6 +44,6 @@ def recombination(E=cf.E_drift):
     k = 0.0486
     rho = 1.39
     alpha = 0.83
-    dEdx = 2.11 #for muon at mip
+    dEdx = 2.11 #for muon at mip (MeV/cm)
 
     return A/(1.+(k/E)*dEdx/rho)

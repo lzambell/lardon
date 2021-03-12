@@ -2,6 +2,7 @@ import config as cf
 import data_containers as dc
 
 from .select_hits import *
+
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -14,8 +15,8 @@ import colorcet as cc
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.cbook import flatten
 
-color_v0 = 'c'
-color_v1 = 'orange'
+color_v0 = '#FBA120'
+color_v1 = '#435497'
 
 
 def plot_3d(option=None, to_be_shown=True):

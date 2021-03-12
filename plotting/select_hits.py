@@ -24,6 +24,9 @@ def get_hits_charge(view, selection="True"):
 def get_hits_adc(view, selection="True"):
     return [x.max_adc for x in dc.hits_list if x.view == view and eval(selection)]
 
+def get_hits_crp(view, selectrion="True"):
+    return [x.crp for x in dc.hits_list if x.view == view and eval(selection)]
+
 
 def get_2dtracks_pos(view, selection="True"):
     return [[p[0] for p in t.path] for t in dc.tracks2D_list if t.view==view and eval(selection)]
@@ -39,7 +42,7 @@ def get_3dtracks(view, axis, selection="True"):
         return [[p[axis] for p in t.path_v1] for t in dc.tracks3D_list if eval(selection)] 
     else:
         raise ValueError
-
+            
 
 
 def get_3dtracks_x(view, selection="True"):
@@ -50,3 +53,4 @@ def get_3dtracks_y(view, selection="True"):
 
 def get_3dtracks_z(view, selection="True"):
     return get_3dtracks(view, 2, selection)
+

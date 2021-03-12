@@ -11,7 +11,7 @@ import colorcet as cc
 
 
 adc_min = -5
-adc_max = 25
+adc_max = 5
 cmap_ed = cc.cm.linear_tritanopic_krjcw_5_95_c24_r
 
 

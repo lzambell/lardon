@@ -180,7 +180,7 @@ def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2):
 
 
     v = lar.driftVelocity()
-    print("Drift Velocity : v = %.3f mm/mus"%v)
+    #print("Drift Velocity : v = %.3f mm/mus"%v)
 
     """ transforms hit channel and tdc to positions """
     [x.hit_positions(v) for x in dc.hits_list]
