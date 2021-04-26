@@ -256,6 +256,8 @@ def centered_median_filter(array, size):
 
 
 def median_filter(window):
+    if(window < 0):
+        return
     """ apply median filter on data to remove microphonic noise """
     """ only on crp0 and crp1 to save some computing time"""
 

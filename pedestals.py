@@ -94,9 +94,8 @@ def store_raw_ped_rms(bad_mean_thr):
         crp, view, ch = dc.map_ped[i].get_ana_chan()
         if(crp >= cf.n_CRPUsed): continue
         dc.map_ped[i].set_raw_pedestal(dc.ped_mean[crp,view,ch], dc.ped_rms[crp,view,ch])
-        if(dc.ped_mean[crp,view,ch] < bad_mean_thr):
+        if(dc.ped_mean[crp,view,ch] < bad_mean_thr and dc.alive_chan[crp, view, ch, 0] == True):
             n_bad += 1
-
     return n_bad
         
         
@@ -113,4 +112,4 @@ def store_final_ped_rms():
         crp, view, ch = dc.map_ped[i].get_ana_chan()
         if(crp >= cf.n_CRPUsed): continue
         dc.map_ped[i].set_evt_pedestal(dc.ped_mean[crp,view,ch], dc.ped_rms[crp,view,ch])
-
+        

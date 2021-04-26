@@ -136,6 +136,7 @@ class event:
 
 class hits:
     def __init__(self, crp, view, channel, start, stop, charge, max_t, max_adc):
+        self.idx     = -1
         self.crp     = crp
         self.view    = view
         self.channel = channel
@@ -147,6 +148,8 @@ class hits:
         self.cluster = -1 #cluster
         self.X       = -1
         self.Z       = -1
+        self.Z_start = -1
+        self.Z_stop  = -1
         self.matched = -9999
         
 
@@ -156,6 +159,11 @@ class hits:
 
         """ sort hits by decreasing Z and increasing channel """
         return (self.Z > other.Z) or (self.Z == other.Z and self.X < other.X)
+
+
+    def set_index(self, idx):
+        self.idx = idx
+
 
     def hit_positions(self, v):
         self.X = self.channel*cf.ChanPitch
@@ -169,6 +177,8 @@ class hits:
                 self.X -= cf.n_ChanPerCRP * cf.ChanPitch                
 
         self.Z = cf.Anode_Z - self.max_t*cf.n_Sampling*v*0.1
+        self.Z_start = cf.Anode_Z - self.start*cf.n_Sampling*v*0.1
+        self.Z_stop = cf.Anode_Z - self.stop*cf.n_Sampling*v*0.1
 
     def hit_charge(self):
         self.charge *= cf.n_Sampling 
@@ -177,8 +187,13 @@ class hits:
     def set_match(self, ID):
         self.matched = ID
 
+        
+    def dump(self):
+        print(self.crp, " ", self.view, " ", self.X, " [", self.Z_start, ", ", self.Z, ", ", self.Z_stop, "]")
+
+
 class trk2D:
-    def __init__(self, ID, ini_crp, view, ini_slope, ini_slope_err, x0, y0, q0, chi2, cluster):
+    def __init__(self, ID, ini_crp, view, ini_slope, ini_slope_err, x0, y0, t0, q0, chi2, cluster):
         self.trackID = ID
         self.ini_crp = ini_crp
         self.end_crp = ini_crp
@@ -208,6 +223,9 @@ class trk2D:
 
         self.matched = -1
         self.cluster = cluster
+
+        self.ini_time = t0
+        self.end_time = t0
         
     def __lt__(self,other):
         """ sort tracks by decreasing Z and increasing channel """
@@ -236,7 +254,7 @@ class trk2D:
         else:
             print("?! cannot remove hit ", x, " ", y, " ", q, " pos ", pos)
             
-    def add_hit(self, x, y, q):
+    def add_hit(self, x, y, q, t):
         self.nHits += 1
         
         self.len_path += math.sqrt( pow(self.path[-1][0]-x, 2) + pow(self.path[-1][1]-y,2) )
@@ -245,9 +263,9 @@ class trk2D:
         self.dQ.append(q)
         self.tot_charge += q
         self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1], 2) )
+        self.end_time = t
 
-
-    def add_hit_update(self, slope, slope_err, x, y, q, chi2):
+    def add_hit_update(self, slope, slope_err, x, y, t, q, chi2):
         self.end_slope = slope
         self.end_slope_err = slope_err
         self.nHits += 1
@@ -259,7 +277,7 @@ class trk2D:
         self.chi2 = chi2
         self.tot_charge += q
         self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1], 2) )
-
+        self.end_time = t
 
     def update_forward(self, chi2, slope, slope_err):
         self.chi2_fwd = chi2
@@ -278,6 +296,18 @@ class trk2D:
         
 
     def finalize_track(self):
+        if(self.path[-1][1] > self.path[0][1]):
+
+            self.path.reverse()
+            self.dQ.reverse()
+            self.ini_crp, self.end_crp = self.end_crp, self.ini_crp
+            self.ini_slope, self.end_slope = self.end_slope, self.ini_slope
+            self.ini_slope_err, self.end_slope_err = self.end_slope_err, self.ini_slope_err
+
+            self.chi2_fwd, self.chi2_bkwd = self.chi2_bkwd, self.chi2_fwd 
+            print(self.trackID, " : wrong order check :", self.path[0][1], " to ", self.path[-1][1])
+            self.ini_time, self.end_time = self.end_time, self.ini_time
+
         self.nHits = len(self.path)
         self.tot_charge = sum(self.dQ)
 
@@ -379,6 +409,7 @@ class trk2D:
                self.path.extend(other.path)
                self.dQ.extend(other.dQ)
                self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1], 2) )
+               self.end_time = other.end_time
 
         else:
                self.ini_crp = other.ini_crp
@@ -392,12 +423,15 @@ class trk2D:
                self.path = other.path + self.path
                self.dQ = other.dQ + self.dQ
                self.len_straight = math.sqrt( pow(self.path[0][0]-self.path[-1][0], 2) + pow(self.path[0][1]-self.path[-1][1],2) )        
-        
+               self.ini_time = other.ini_time
 
-    def mini_dump(self, verb):
+    def charge_in_z_interval(self, start, stop):
+        return sum([q for q, (x, z) in zip(self.dQ, self.path) if z >= start and z <= stop])
+
+    def mini_dump(self, verb=True):
         if(verb is True):
-            if(self.ini_crp != self.end_crp):            
-                print("view : ", self.view, " [", self.ini_crp, " -> ", self.end_crp,",",self.view,"] from (%.1f,%.1f)"%(self.path[0][0], self.path[0][1]), " to (%.1f, %.1f)"%(self.path[-1][0], self.path[-1][1]), " N = ", self.nHits, " L = %.1f/%.1f"%(self.len_straight, self.len_path), " Q = ", self.tot_charge )
+            if(True):#self.ini_crp != self.end_crp):            
+                print("view : ", self.view, " [", self.ini_crp, " -> ", self.end_crp,",",self.view,"] from (%.1f,%.1f)"%(self.path[0][0], self.path[0][1]), " to (%.1f, %.1f)"%(self.path[-1][0], self.path[-1][1]), " N = ", self.nHits, " L = %.1f/%.1f"%(self.len_straight, self.len_path), " Q = ", self.tot_charge, " Dray N = ", self.nHits_dray, " Qdray ", self.dray_charge)
                
 
 class trk3D:
@@ -419,6 +453,8 @@ class trk3D:
 
         self.tot_charge_v0 = -1
         self.tot_charge_v1 = -1
+        self.dray_charge_v0 = -1
+        self.dray_charge_v1 = -1
 
         self.ini_theta = -1
         self.end_theta = -1
@@ -427,6 +463,9 @@ class trk3D:
 
         self.t0_corr = 0.
         self.z0_corr = 0.
+
+        self.ini_time = min(tv0.ini_time, tv1.ini_time)
+        self.end_time = max(tv0.end_time, tv1.end_time)
 
         """ field corrected """
         self.len_straight_field_corr_v0 = -1
@@ -447,10 +486,18 @@ class trk3D:
         self.t0_field_corr = 0.
         self.z0_field_corr = 0.
 
+        
+        ''' track boundaries '''
+        """
+        if(tv0.path[0][1] < tv1.path[0][1]):
+            self.ini_bound_x = tv0.path[0][0]
+        self.ini_bound_y = tv1.path[0][0]
+        self.ini_bound_z = 0.5*(tv0.path[0][1] + tv1.path[0][1])
+        """
+
         self.ini_x = tv0.path[0][0]
         self.ini_y = tv1.path[0][0]
         self.ini_z = 0.5*(tv0.path[0][1] + tv1.path[0][1])
-
 
         self.end_x = tv0.path[-1][0]
         self.end_y = tv1.path[-1][0]
@@ -537,7 +584,7 @@ class trk3D:
         self.end_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),-1.))
 
         
-    def dump(self, verb):
+    def dump(self, verb=True):
         if(verb is True):
             print(" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)"%(self.ini_x, self.ini_y, self.ini_z, self.end_x, self.end_y, self.end_z))
             print(" theta, phi: [ini] %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> [end] %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_v0, self.len_path_v1, self.len_straight_v0, self.len_straight_v1))
