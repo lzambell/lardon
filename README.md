@@ -15,6 +15,12 @@ and then get the librairies as stated in **lardenv.yml** :
 
 then : `conda activate lardenv`
 
+The `rtree` library is now also needed, but cannot be downloaded from conda. 
+Instructions to get it within `lardenv`:
+* all above steps
+* `cd /your_miniconda_repository/envs/lardenv/bin`
+* `pip install rtree`
+ 
 ## Before running lardon
 Check and modify **config.py** :
 * *store_path* : your directory where the output file will be stored
@@ -31,6 +37,7 @@ To launch lardon, type `python reader.py` with the following options:
 * `-type <type of data>` for the special runs, default is cosmic
 * `-reco <your_reco_parameters.yaml>` if you want to change some reconstruction parameters, default uses **default_reco.yaml**
 
+
 *e.g.* : To run the first 10 events of run 1415, subfile 5_b, type :
 
 `python reader.py -run 1415 -sub 5_b -n 10 -out example`
@@ -42,7 +49,7 @@ add `-mc the_mc_root_file.root`
 
 the simulation will be added to a run of data (preferably a noise only run!)
 
-:warning: Note that the MC file should be in a specific format - This part is still under development
+:warning: Note that the MC file should be in a specific format - only from Qscan at the moment
 
 
 ## lardon CRP/VIEW Convention
