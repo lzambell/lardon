@@ -50,3 +50,22 @@ class Run:
 
             """ remove un-instrumented CRP3 v1 """
             self.daq_broken_channels += [cm.CRPToDAQ(3, 1, x) for x in range(0, 640)]            
+
+        if(run == "1184" or run == "1185" or run == "1186"):
+            """ remove all CRP0 v0 """
+            self.daq_broken_channels += [cm.CRPToDAQ(0, 0, x) for x in range(0, 960)]
+
+            """ remove all CRP0 v1 """
+            self.daq_broken_channels += [cm.CRPToDAQ(0, 1, x) for x in range(0, 960)]
+
+            """ remove all CRP1 v0 """
+            self.daq_broken_channels += [cm.CRPToDAQ(1, 0, x) for x in range(0, 960)]
+
+            """ remove all CRP1 v1 """
+            self.daq_broken_channels += [cm.CRPToDAQ(1, 1, x) for x in range(0, 960)]
+
+        """
+        if(run == "1173"):
+            self.daq_broken_channels += [cm.CRPToDAQ(1, 0, x) for x in range(640, 960)]
+            self.daq_broken_channels += [cm.CRPToDAQ(1, 1, x) for x in range(640, 960)]
+        """

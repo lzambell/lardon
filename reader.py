@@ -37,6 +37,7 @@ mc_file  = ""
 addMC = False
 reco_param = cf.default_reco
 job = False
+do_root = False
 
 for index, arg in enumerate(sys.argv):
     if arg in ['-run'] and len(sys.argv) > index + 1:
@@ -56,6 +57,8 @@ for index, arg in enumerate(sys.argv):
         mc_file = sys.argv[index + 1]
     elif arg in ['-job']:
         job = True
+    elif arg in ['-root']:
+        do_root = True
 
 
 name_in = cf.data_path + run_n + "/" + run_n + "_" + evt_file + "." + evt_type
@@ -90,6 +93,9 @@ import track_2d as trk2d
 import track_3d as trk3d
 import store as store
 
+if(do_root is True):
+    import store_root_file as froot
+
 if(job is False):
     import plotting as plot
     plot.set_style()
@@ -106,11 +112,16 @@ if(job):
 else:
     name_out = cf.store_path + "/" + run_n + "_" + evt_file + outname_option + ".h5"
 
-
 output = tables.open_file(name_out, mode="w", title="Reconstruction Output")
 output_test = tables.open_file(name_out.replace(".h5", "_lite.h5"), mode="w", title="Reconstruction Output Light")
-store.create_temp(output_test)
+store.create_lite(output_test)
 
+if(do_root):
+    print("ROUT OUPUT!!!")
+    name_out_root = name_out.replace(".h5", "_for_pandora.root")
+    name_out_root = name_out_root.replace(cf.store_path, cf.store_path+"/root_files/")
+    print(name_out_root)
+    output_root = froot.store_root(name_out_root)
 
 data = open(name_in, "rb")
 
@@ -166,7 +177,7 @@ print(" NCRP USED ", therun.n_CRPUsed)
 print(" NB OF BROKEN CHANNELS ", len(therun.daq_broken_channels))
 print(" NB of ALIVE CHANNELS ", np.sum(dc.alive_chan))
 
-
+tot_trk = 0
 verb = not job
 
 print("\n")
@@ -219,7 +230,7 @@ for ievent in range(nevent):
         continue
 
     
-    #plot.plot_ed_data(option="", to_be_shown=True)
+    #plot.plot_ed_data(option="MC", to_be_shown=True)
     #plot.plot_wvf_single_current([(1, 1, 424), (1,1,425),(1,1,426),(3,0,259), (3,0,260),(3,0,261)], option="test", to_be_shown=True)
 
 
@@ -251,7 +262,8 @@ for ievent in range(nevent):
 
     """ END OF NOISE FILTERING PART """
 
-    #plot.plot_ed_data(option="gap", to_be_shown=False)
+    #plot.plot_ed_data(option="septfilt", to_be_shown=False)
+
     ta = time.time()
     """ Update ROI regions """
     noise.define_ROI(myreco.param['roi_signal_thresh_2'], myreco.param['roi_n_iter'])
@@ -263,17 +275,21 @@ for ievent in range(nevent):
 
     """ Search for Hits in the collections views """
     """ parameters : pad left (n ticks) pad right (n ticks), min dt, thr1, thr2 """
+    th = time.time()
     hf.hit_finder(myreco.param['hit_pad_left'], 
                   myreco.param['hit_pad_right'], 
                   myreco.param['hit_min_dt'], 
                   myreco.param['hit_thr1'], 
                   myreco.param['hit_thr2'])
 
+    print("hit finder ", time.time()-th)
+    #dc.evt_list[-1].dump_reco(verb)
+    #plot.plot_2dview_hits("sept", True)
 
 
     """ Clustering of the hits """
     """ Two algorithms available """
-
+    
     if(myreco.param['clus_use_dbscan']):
         """parameters : eps (cm), min pts, y axis squeeze"""
         for e, n, s in zip(myreco.param['clus_dbscan_eps'], 
@@ -285,27 +301,29 @@ for ievent in range(nevent):
         """ parameters : search radius (cm), min nb of hits in cluster """
         clus.mst(myreco.param['clus_mst_radius'],
                  myreco.param['clus_mst_npts'])
-
+    
     #plot.plot_2dcrp_clusters(option="", to_be_shown=True)
 
 
-
+    t0 = time.time()
     """ Search for 2D tracks """
     for n, r, c in zip(myreco.param['trk2d_npts'],
                        myreco.param['trk2d_rcut'],
                        myreco.param['trk2d_chi2']):
 
         """parameters : min nb hits, rcut, chi2cut, y error, slope error, pbeta"""
-        trk2d.find_tracks(n, r, c, 
-                          myreco.param['pfilt_posErr'], 
-                          myreco.param['pfilt_slopeErr'], 
-                          myreco.param['pfilt_pbeta'])
-
+        trk2d.find_tracks_rtree(n, r, c, 
+                                myreco.param['pfilt_posErr'], 
+                                myreco.param['pfilt_slopeErr'], 
+                                myreco.param['pfilt_pbeta'])
+        
         print("(finder) nb of 2D tracks ", len(dc.tracks2D_list))
+        
+    print(" time to find 2D tracks %.3f s"%(time.time()-t0))
 
 
-    """ Stitch Found 2D tracks """
 
+    """ Stitch Found 2D tracks """    
     """ parameters are : min distance in between 2 tracks end points, slope error tolerance, extrapolated distance tolerance + filter input parameters"""
     trk2d.stitch_tracks(myreco.param['trk2d_stitch_dmin'],
                         myreco.param['trk2d_stitch_slope'],
@@ -313,40 +331,50 @@ for ievent in range(nevent):
                         myreco.param['pfilt_posErr'], 
                         myreco.param['pfilt_slopeErr'], 
                         myreco.param['pfilt_pbeta'])
-
+    
     print("(stitch) nb of 2D tracks ", len(dc.tracks2D_list))
 
-    for t in dc.tracks2D_list:
-        t.mini_dump(verb)
+
     #plot.plot_2dview_2dtracks(option='', to_be_shown=False)
     
 
 
     """ Search for 3D tracks """
-    """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance, distance to detector boundaries for time correction (cm) """
-    trk3d.find_tracks(myreco.param['trk3d_ztol'],
-                      myreco.param['trk3d_qbal'],
-                      myreco.param['trk3d_dbound'])
+    """ parameters are : z start/end agreement cut (cm), v0/v1 charge balance, min. length of track to consider for merging, distance to detector boundaries for time correction (cm) """
+    trk3d.find_tracks_rtree(myreco.param['trk3d_ztol'],
+                            myreco.param['trk3d_qbal'],
+                            myreco.param['trk3d_lenmin'],
+                            myreco.param['trk3d_dbound'])
 
-    #plot.plot_2dview_hits_and_3dtracks(option="", to_be_shown=False)
-    #plot.plot_3d(option="", to_be_shown=False)
+
+    dc.evt_list[-1].dump_reco(verb)
+    #plot.plot_2dview_hits_and_3dtracks_debug(option="rtree3D", to_be_shown=True)
+    #plot.plot_3d(option="rtree3D", to_be_shown=True)
 
     """ End Of Reconstruction """
-
+    tot_trk += dc.evt_list[-1].nTracks3D
     gr = store.new_event(output, ievent)
     store.store_event(output, gr)
     store.store_pedestal(output, gr)
     store.store_hits(output, gr)
     store.store_tracks2D(output, gr)
     store.store_tracks3D(output, gr)
-    store.store_tracks3D_test(output_test)
-    
+    store.store_tracks3D_lite(output_test)
+
+    if(do_root):
+        output_root.store_found_hits()
+
     print(" time to reconstruct the event : %.2f s"%(time.time() - time_event))
-    dc.evt_list[-1].dump_reco(verb)
+
 
 
 data.close()
 output.close()
 output_test.close()
+
+if(do_root):
+    output_root.store_and_close()
+
 tottime = time.time() - tstart
 print("\nTOTAL RUNNING TIME %.2f s == %.2f s/evt"% (tottime, tottime/nevent))
+print("TOTAL NB 3D TRACKS : ", tot_trk)

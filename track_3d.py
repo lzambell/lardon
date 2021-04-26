@@ -5,7 +5,12 @@ import field_param as field
 import numpy as np
 import math
 from scipy.interpolate import UnivariateSpline
+from rtree import index
+from operator import itemgetter
 
+
+def linear_interp(dx, z0, a):
+    return dx*a + z0
 
 def complete_trajectory(track, other, view):
 
@@ -13,9 +18,12 @@ def complete_trajectory(track, other, view):
     x_o = [x[0] for x in reversed(other.path)]
     z_o = [x[1] for x in reversed(other.path)]
 
-
     """ order lists according to z increasing """ 
     z_o, x_o = (list(t) for t in zip(*sorted(zip(z_o, x_o))))
+
+    """ get the other track z range """
+    x_o_min, z_o_min = x_o[0],  z_o[0]
+    x_o_max, z_o_max = x_o[-1], z_o[-1]
 
 
     """ spline needs unique 'x' points to work --> remove duplicate """
@@ -32,6 +40,9 @@ def complete_trajectory(track, other, view):
     spline = UnivariateSpline(z_o_unique, x_o_unique)
     deriv = spline.derivative()
 
+    deriv_z_min = float(deriv(z_o_min))
+    deriv_z_max = float(deriv(z_o_max))
+
     a0, a1 = 0., 0.
     dx, dy, dz = 0., 0., 0.
 
@@ -42,8 +53,6 @@ def complete_trajectory(track, other, view):
     for i in range(len(track.path)):
         x = track.path[i][0]
         z = track.path[i][1]
-        y = float(spline(z))
-
         
         if( i == 0 ):
             a0 = 0. if track.ini_slope == 0 else 1./track.ini_slope
@@ -54,10 +63,21 @@ def complete_trajectory(track, other, view):
             
             a0 = 0. if dx == 0 else dz/dx
 
+        if(z >= z_o_min and z <= z_o_max):
+            y = float(spline(z))
+            a1 = float(deriv(z))              
+            a1 = 0. if a1 == 0 else 1./a1
+        elif(z < z_o_min):
+            y = linear_interp(z-z_o_min, x_o_min, deriv_z_min)
+            a1 = 0. if deriv_z_min == 0 else 1./deriv_z_min
 
-        a1 = float(deriv(z))              
-        a1 = 0. if a1 == 0 else 1./a1
-        
+        elif(z > z_o_max):
+            y = linear_interp(z-z_o_max, x_o_max, deriv_z_max)
+            a1 = 0. if deriv_z_max == 0 else 1./deriv_z_max
+
+            
+
+
         dr = cf.ChanPitch
 
         if(a1 == 0):
@@ -83,8 +103,9 @@ def t0_corr_from_reco(trk, tol):
     z_top = cf.Anode_Z
     vdrift = lar.driftVelocity()/10. #in cm mus^-1
 
+    ''' maximum drift distance '''
     z_bot = z_top - cf.n_Sample*cf.n_Sampling*vdrift/10.
-    z_short = z_top - 120. #this is a huge approximation ; to be updated !
+    z_end = z_top - cf.DriftLength
 
     delta_x = cf.len_det_x/2.
     delta_y = cf.len_det_y/2.
@@ -129,7 +150,7 @@ def t0_corr_from_reco(trk, tol):
 
     #early track case
     if(from_top and not exit_wall):        
-        z0 = (z_short - trk.end_z)
+        z0 = (z_end - trk.end_z)
         if(z0 > 0.): z0 *= -1.
         t0 = z0/vdrift
         trk.set_t0_z0_corr(t0, z0)
@@ -243,6 +264,131 @@ def compute_field_correction(trk):
     trk.set_field_correction(t0_field, z0_field, z_path_corr_v0, z_path_corr_v1, dQds_corr_v0, dQds_corr_v1)
 
 
+def find_tracks_rtree(ztol, qfrac, len_min, corr_d_tol):
+    pties = index.Property()
+    pties.dimension = 3
+
+    ''' create an rtree index (3D : view, crp, z)'''
+    rtree_idx = index.Index(properties=pties)
+
+
+    ''' as the 2D track list got sorted, list index and track ID do not match anymore '''
+    idx_to_ID = []
+
+    i = 0
+    ''' fill the index '''
+    ''' track start is at the top of the detector, hence start > stop '''
+
+    for t in dc.tracks2D_list:
+
+        start = t.path[0][1]
+        stop  = t.path[-1][1]
+        ini_crp = t.ini_crp
+        end_crp = t.end_crp
+        if(ini_crp > end_crp):
+            ini_crp, end_crp = end_crp, ini_crp
+
+
+        if(t.len_straight >= len_min):        
+            rtree_idx.insert(t.trackID, (t.view, ini_crp, stop, t.view, end_crp, start))
+        i+=1
+        idx_to_ID.append(t.trackID)
+
+        
+    ID_to_idx = [-1]*(max(idx_to_ID)+1)
+    
+    for idx, ID in enumerate(idx_to_ID):
+        ID_to_idx[ID] = idx
+
+
+    ''' search for the best matching track in the other view '''
+
+    for ti in dc.tracks2D_list:
+        if(ti.len_straight < len_min):
+            continue
+
+        ti_start = ti.path[0][1]
+        ti_stop  = ti.path[-1][1]
+        ti_ini_crp = ti.ini_crp
+        ti_end_crp = ti.end_crp
+        if(ti_ini_crp > ti_end_crp):
+            ti_ini_crp, ti_end_crp = ti_end_crp, ti_ini_crp
+            
+        other_view = 1 if ti.view == 0 else 0
+
+        overlaps = list(rtree_idx.intersection((other_view, ti_ini_crp, ti_stop, other_view, ti_end_crp, ti_start)))
+
+        matches = []
+        for j_ID in overlaps:
+            j_idx = ID_to_idx[j_ID]
+            tj = dc.tracks2D_list[j_idx]
+            
+            tj_start = tj.path[0][1]
+            tj_stop  = tj.path[-1][1]
+            
+            zmin = max(ti_stop, tj_stop)
+            zmax = min(ti_start, tj_start)
+            qi = ti.charge_in_z_interval(zmin, zmax)
+            qj = tj.charge_in_z_interval(zmin, zmax)
+
+            try:
+                balance = math.fabs(qi - qj)/(qi + qj)
+            except ZeroDivisionError:
+                balance = 9999.
+            dmin = min(math.fabs(ti_start- tj_start), math.fabs(ti_stop - tj_stop))
+            if(balance < qfrac and dmin < ztol):
+                matches.append( (j_ID, balance, dmin) )
+
+        if(len(matches) > 0):
+            ''' sort matches by balance '''        
+            matches = sorted(matches, key=itemgetter(1))
+            ti.matched = matches[0][0]
+    
+
+    ''' now do the matching !'''
+
+    
+    for i_idx in range(len(dc.tracks2D_list)):
+        tv0 = dc.tracks2D_list[i_idx]
+        i_ID = idx_to_ID[i_idx]
+        if(tv0.view != 0):
+            continue
+
+        j_ID = tv0.matched
+        j_idx = ID_to_idx[j_ID]
+        if(j_ID>0):
+            tv1 = dc.tracks2D_list[j_idx]
+            if(tv1.matched == i_ID):
+                ''' it's a match! '''
+
+
+                track = dc.trk3D(tv0, tv1)
+            
+                l, t, q = complete_trajectory(tv0, tv1, 0)
+
+
+                if(l < 0):
+                    continue
+
+                track.set_view0(t, q)
+
+
+                l, t, q = complete_trajectory(tv1, tv0, 1)
+            
+                if(l < 0):
+                    continue
+                track.set_view1(t, q)
+
+                track.matched(tv0, tv1)
+                track.angles(tv0, tv1)
+                t0_corr_from_reco(track, corr_d_tol)
+                compute_field_correction(track)
+                dc.tracks3D_list.append(track)
+                dc.evt_list[-1].nTracks3D += 1
+                dc.tracks3D_list[-1].dump()
+                
+
+
 def find_tracks(ztol, qfrac, corr_d_tol):
     t_v0 = [x for x in dc.tracks2D_list if x.view == 0]
     t_v1 = [x for x in dc.tracks2D_list if x.view == 1]
@@ -299,6 +445,6 @@ def find_tracks(ztol, qfrac, corr_d_tol):
             dc.tracks3D_list.append(track)
             dc.evt_list[-1].nTracks3D += 1
             
-            #dc.tracks3D_list[-1].dump()
+
 
             

@@ -141,7 +141,8 @@ def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2):
 
             hh = hit_search(adc, crp, view, channel, tdc_start, dt_min, thr1, thr2)
 
-
+            ''' this is wrong '''
+            '''
             """add padding to found hits"""
             for i in range(len(hh)): 
                 """ to the left """
@@ -169,7 +170,7 @@ def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2):
                     else:
                         hh[i].stop = hh[i+1].start - 1
 
-
+            '''
 
 
 
@@ -178,6 +179,55 @@ def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2):
 
     print("nb of hits found ",len(dc.hits_list))
 
+    """ add paddings for hit charge integration properly """
+    """ the hits in dc.hits_list are ordered by channel and time """
+    
+    """ special treatment for the first and last hit of the list """
+    h = dc.hits_list[0]
+    if(h.start > pad_left):
+        h.start -= pad_left
+    else:
+        h.start = 0            
+
+    h = dc.hits_list[-1]    
+    if(h.stop < cf.n_Sample - pad_right):
+        h.stop += pad_right
+    else:
+        h.stop = cf.n_Sample
+
+
+    for i in range(1, len(dc.hits_list)-1):
+        h = dc.hits_list[i]        
+        hprev = dc.hits_list[i-1]
+        hnext = dc.hits_list[i+1]
+        
+        """ to the left """
+        if(h.view == hprev.view and h.crp == hprev.crp and h.channel == hprev.channel):
+            if(h.start - pad_left > hprev.stop):
+                h.start -= pad_left
+            else:
+                h.start = hprev.stop + 1
+        else:
+            if(h.start > pad_left):
+                h.start -= pad_left
+            else:
+                h.start = 0            
+
+        """ to the right """
+        if(h.view == hnext.view and h.crp == hnext.crp and h.channel == hnext.channel):
+            if(h.stop + pad_right < hnext.start):
+                h.stop += pad_right
+            else:
+                h.stop = hnext.start - 1
+        else:            
+            if(h.stop < cf.n_Sample - pad_right):
+                h.stop += pad_right
+            else:
+                h.stop = cf.n_Sample
+
+
+
+        
 
     v = lar.driftVelocity()
     #print("Drift Velocity : v = %.3f mm/mus"%v)
@@ -185,6 +235,11 @@ def hit_finder(pad_left, pad_right, dt_min, n_sig_1, n_sig_2):
     """ transforms hit channel and tdc to positions """
     [x.hit_positions(v) for x in dc.hits_list]
 
+    """ set hit an index number """
+    [dc.hits_list[i].set_index(i) for i in range(len(dc.hits_list))]
+
     """ compute hit charge in fC """
     [recompute_hit_charge(x) for x in dc.hits_list]
     [x.hit_charge() for x in dc.hits_list]
+
+

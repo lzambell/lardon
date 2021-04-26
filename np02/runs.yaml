@@ -216,10 +216,10 @@
   daq_broken_channels: [-1]
 '1173':
   nCRPUsed: 2
-  daq_broken_channels: [-1]
+  daq_broken_channels: [7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 41, 40, 49, 50, 48, 1531, 1530, 1529, 1528]
 '1184':
   nCRPUsed: 4
-  daq_broken_channels: [-1]
+  daq_broken_channels: [] #crp0 and crp1 off, taken care of in the code
 '1185':
   nCRPUsed: 4
   daq_broken_channels: [-1]

@@ -27,7 +27,7 @@ clus_dbscan_eps: [15., 30.] #radius to seach (cm)
 clus_dbscan_npts: [10, 5] #min. nb of hits in circle to make a cluster
 clus_dbscan_ysqueez: [1., 0.05] #stretch time axis to actually have a seaching ellipse
 
-clus_use_mst: True
+clus_use_mst: False
 clus_mst_radius: 10 #in cm
 clus_mst_npts: 5 #min nb of hits to make a cluster
 
@@ -39,9 +39,9 @@ pfilt_slopeErr: 1.
 pfilt_pbeta: 3. #initial track pbeta guess, although this might be not well estimated in np02 given the short anyway
 
 #2D Reconstruction, as a list to make N pass
-trk2d_npts: [10, 4] #min nb of hits
-trk2d_rcut: [6., 8.] #radius (cm) to search nearby hits to update filter
-trk2d_chi2: [8., 12.] #max chi2 to accept hit in the track
+trk2d_npts: [10,  8] #min nb of hits
+trk2d_rcut: [5., 20.] #radius (cm) to search nearby hits to update filter
+trk2d_chi2: [4., 6.] #max chi2 to accept hit in the track
 
 
 #2D STITCHING
@@ -53,5 +53,6 @@ trk2d_stitch_dma: 6. #extrapolated distance tolerance (in cm)
 #3D TRACKS
 trk3d_ztol: 8. #z start/end agreement cut (cm)
 trk3d_qbal: 0.25 #Qv0/Qv1 charge balance cut
+trk3d_lenmin: 25. #min. 2d track length to be considered for merging (cm)
 trk3d_dbound: 4. #distance to detector boundaries for time correction (cm)
 

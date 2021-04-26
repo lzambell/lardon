@@ -22,10 +22,10 @@ class Pedestal(IsDescription):
     crp       = UInt8Col()
     view      = UInt8Col()
     channel   = UInt16Col()
-    raw_mean  = Float16Col()
-    raw_rms   = Float16Col()
-    filt_mean = Float16Col()
-    filt_rms  = Float16Col()
+    raw_mean  = Float32Col()
+    raw_rms   = Float32Col()
+    filt_mean = Float32Col()
+    filt_rms  = Float32Col()
 
 
 class Hits(IsDescription):
@@ -33,60 +33,61 @@ class Hits(IsDescription):
     view    = UInt8Col()
     channel = UInt16Col()
     tdc_max = UInt16Col()
-    z       = Float16Col()
-    x       = Float16Col()
-    dt      = Float16Col()
-    adc_max = UInt16Col()
-    charge  = Float16Col()
+    z       = Float32Col()
+    x       = Float32Col()
+    dt      = Float32Col()
+    adc_max = Float32Col()
+    charge  = Float32Col()
     cluster = Int16Col()
-
+    z_start = Float32Col()
+    z_stop  = Float32Col()
 
 class Tracks2D(IsDescription):
     view    = UInt8Col()
     crp_ini = UInt8Col()
     crp_end = UInt8Col()
-    pos_ini = Float16Col()
-    pos_end = Float16Col()
-    z_ini   = Float16Col()
-    z_end   = Float16Col()
+    pos_ini = Float32Col()
+    pos_end = Float32Col()
+    z_ini   = Float32Col()
+    z_end   = Float32Col()
     nHits   = UInt16Col()
-    chi2    = Float16Col()
+    chi2    = Float32Col()
 
-    slope_ini = Float16Col()
-    slope_end = Float16Col()
+    slope_ini = Float32Col()
+    slope_end = Float32Col()
 
-    len_straight = Float16Col()
-    len_path     = Float16Col()
-    total_charge = Float16Col()
+    len_straight = Float32Col()
+    len_path     = Float32Col()
+    total_charge = Float32Col()
 
 class Tracks3D(IsDescription):
     crp_ini = UInt8Col()
     crp_end = UInt8Col()
-    x_ini   = Float16Col()
-    y_ini   = Float16Col()
-    z_ini   = Float16Col()
-    x_end   = Float16Col()
-    y_end   = Float16Col()
-    z_end   = Float16Col()
-    chi2    = Float16Col()
+    x_ini   = Float32Col()
+    y_ini   = Float32Col()
+    z_ini   = Float32Col()
+    x_end   = Float32Col()
+    y_end   = Float32Col()
+    z_end   = Float32Col()
+    chi2    = Float32Col()
 
-    theta_ini = Float16Col()
-    theta_end = Float16Col()
-    phi_ini   = Float16Col()
-    phi_end   = Float16Col()
+    theta_ini = Float32Col()
+    theta_end = Float32Col()
+    phi_ini   = Float32Col()
+    phi_end   = Float32Col()
 
     nHits        = UInt16Col(shape=(cf.n_View))
-    len_straight = Float16Col(shape=(cf.n_View))
-    len_path     = Float16Col(shape=(cf.n_View))
-    total_charge   = Float16Col(shape=(cf.n_View))
+    len_straight = Float32Col(shape=(cf.n_View))
+    len_path     = Float32Col(shape=(cf.n_View))
+    total_charge   = Float32Col(shape=(cf.n_View))
 
-    len_straight_field_corr = Float16Col(shape=(cf.n_View))
-    len_path_field_corr     = Float16Col(shape=(cf.n_View))
-    total_charge_field_corr   = Float16Col(shape=(cf.n_View))
+    len_straight_field_corr = Float32Col(shape=(cf.n_View))
+    len_path_field_corr     = Float32Col(shape=(cf.n_View))
+    total_charge_field_corr   = Float32Col(shape=(cf.n_View))
 
 
-    z0_corr = Float16Col()
-    t0_corr = Float16Col()
+    z0_corr = Float32Col()
+    t0_corr = Float32Col()
     
 def new_event(h5file, event_nb):
     return h5file.create_group("/", 'event_'+str(event_nb), 'Event '+str(event_nb))    
@@ -150,6 +151,8 @@ def store_hits(h5file, group):
         hit['adc_max'] = h.max_adc
         hit['charge']  = h.charge
         hit['cluster'] = h.cluster
+        hit['z_start'] = h.Z_start
+        hit['z_stop']  = h.Z_stop
         hit.append()
     table.flush()
 
@@ -243,13 +246,13 @@ def store_tracks3D(h5file, group):
 
 
 
-def create_temp(h5file):
+def create_lite(h5file):
     table = h5file.create_table("/", 'tracks3D', Tracks3D, "Tracks 3D")           
     t = h5file.create_vlarray("/", 'pathv0', Float32Atom(shape=(6)), "Path V0 (x, y, z, q, zcorr, qcorr)")    
     t = h5file.create_vlarray("/", 'pathv1', Float32Atom(shape=(6)), "Path V1 (x, y, z, q, zcorr, qcorr)")    
        
 
-def store_tracks3D_test(h5file):    
+def store_tracks3D_lite(h5file):    
     t3d = h5file.root.tracks3D.row
     vlv0  = h5file.root.pathv0
     vlv1  = h5file.root.pathv1
@@ -292,3 +295,4 @@ def store_tracks3D_test(h5file):
         vlv0.append(pts_v0)
         vlv1.append(pts_v1)
     #table.flush()
+    
