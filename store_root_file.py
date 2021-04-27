@@ -38,7 +38,9 @@ class store_root:
         self.tree.Branch('pos', self.pos) 
         self.tree.Branch('drift', self.drift) 
         
-        
+        self.to_larsoft_crp  = [3, 1, 0, 2]
+        self.to_larsoft_view = [1, 0]
+
     def clear(self):
         self.channel.clear()
         self.t_max.clear()
@@ -55,18 +57,28 @@ class store_root:
         self.tree.Write()
         self.froot.Close()
 
+
+        
+
     def store_found_hits(self):
         self.event[0] = int(dc.evt_list[-1].evt_nb_glob)
+        self.clear()
         for hv in dc.hits_list:
             self.channel.push_back(int(hv.channel))
             self.t_max.push_back(int(hv.max_t))
             self.t_start.push_back(int(hv.start))
             self.t_stop.push_back(int(hv.stop))
-            self.crp.push_back(int(hv.crp))
-            self.view.push_back(int(hv.view))
+            crp, view = self.to_larsoft_crp[hv.crp], self.to_larsoft_view[hv.view]
+            self.crp.push_back(int(crp))
+            self.view.push_back(int(view))
+            
             self.adc_max.push_back(float(hv.max_adc))
             self.charge.push_back(float(hv.charge))
-            self.pos.push_back(float(hv.X))
+
+            if(view == 0):
+                self.pos.push_back(float(-1.*hv.X))
+            else:
+                self.pos.push_back(float(hv.X+300.))
             self.drift.push_back(float(hv.Z))
         self.tree.Fill()            
 
