@@ -487,14 +487,8 @@ class trk3D:
         self.z0_field_corr = 0.
 
         
-        ''' track boundaries '''
-        """
-        if(tv0.path[0][1] < tv1.path[0][1]):
-            self.ini_bound_x = tv0.path[0][0]
-        self.ini_bound_y = tv1.path[0][0]
-        self.ini_bound_z = 0.5*(tv0.path[0][1] + tv1.path[0][1])
-        """
-
+        ''' track boundaries '''                
+        '''
         self.ini_x = tv0.path[0][0]
         self.ini_y = tv1.path[0][0]
         self.ini_z = 0.5*(tv0.path[0][1] + tv1.path[0][1])
@@ -502,7 +496,7 @@ class trk3D:
         self.end_x = tv0.path[-1][0]
         self.end_y = tv1.path[-1][0]
         self.end_z = 0.5*(tv0.path[-1][1] + tv1.path[-1][1])
-
+        '''
 
         self.path_v0 = []
         self.path_v1 = []
@@ -537,6 +531,21 @@ class trk3D:
         self.dQds_v1     = dqds
         self.tot_charge_v1 = sum(q for q,s in dqds)
 
+    def boundaries(self):
+        ''' begining '''
+        self.ini_x = self.path_v0[0][0] if self.path_v0[0][2] > self.path_v1[0][2] else self.path_v1[0][0]
+        self.ini_y = self.path_v0[0][1] if self.path_v0[0][2] > self.path_v1[0][2] else self.path_v1[0][1]
+        self.ini_z = self.path_v0[0][2] if self.path_v0[0][2] > self.path_v1[0][2] else self.path_v1[0][2]
+        self.ini_z_overlap = min(self.path_v0[0][2], self.path_v1[0][2])
+
+        ''' end '''
+        self.end_x = self.path_v0[-1][0] if self.path_v0[-1][2] < self.path_v1[-1][2] else self.path_v1[-1][0]
+        self.end_y = self.path_v0[-1][1] if self.path_v0[-1][2] < self.path_v1[-1][2] else self.path_v1[-1][1]
+        self.end_z = self.path_v0[-1][2] if self.path_v0[-1][2] < self.path_v1[-1][2] else self.path_v1[-1][2]
+        self.end_z_overlap = max(self.path_v0[-1][2], self.path_v1[-1][2])
+        
+
+
     def matched(self, tv0, tv1):
         tv0.matched = evt_list[-1].nTracks3D
         tv1.matched = evt_list[-1].nTracks3D
@@ -548,8 +557,16 @@ class trk3D:
     def set_field_correction(self, t0, z0, z_path_v0, z_path_v1, dqds_v0, dqds_v1):
         self.t0_field_corr = t0
         self.z0_field_corr = z0
+
         self.z_field_corr_v0 = z_path_v0
         self.z_field_corr_v1 = z_path_v1
+
+        self.ini_field_corr_z = z_path_v0[0] if z_path_v0[0] > z_path_v1[0] else z_path_v1[0]
+        self.end_field_corr_z = z_path_v0[-1] if z_path_v0[-1] < z_path_v1[-1] else z_path_v1[-1]
+
+        self.ini_field_corr_z_overlap = min(z_path_v0[0], z_path_v1[0])
+        self.end_field_corr_z_overlap = max(z_path_v0[-1], z_path_v1[-1])
+
         self.dQds_field_corr_v0 = dqds_v0
         self.dQds_field_corr_v1 = dqds_v1
 
@@ -568,6 +585,7 @@ class trk3D:
         for i in range(self.nHits_v1-1):
             self.len_path_field_corr_v1 +=  math.sqrt( pow(self.path_v1[i][0]-self.path_v1[i+1][0], 2) + pow(self.path_v1[i][1]-self.path_v1[i+1][1],2)+ pow(z_path_v1[i]-z_path_v1[i+1],2) )
 
+    
         
     def angles(self, tv0, tv1):
 
@@ -583,14 +601,29 @@ class trk3D:
         self.end_phi = math.degrees(math.atan2(slope_v1, slope_v0))
         self.end_theta = math.degrees(math.atan2(math.sqrt(pow(slope_v0,2)+pow(slope_v1,2)),-1.))
 
+
+    def angles_field_corr(self, slope_v0_ini, slope_v0_end, slope_v1_ini, slope_v1_end):
+        self.ini_phi_field_corr = math.degrees(math.atan2(slope_v1_ini, slope_v0_ini))
+        self.ini_theta_field_corr = math.degrees(math.atan2(math.sqrt(pow(slope_v0_ini,2)+pow(slope_v1_ini,2)),-1.))
+
+        self.end_phi_field_corr = math.degrees(math.atan2(slope_v1_end, slope_v0_end))
+        self.end_theta_field_corr = math.degrees(math.atan2(math.sqrt(pow(slope_v0_end,2)+pow(slope_v1_end,2)),-1.))
+  
         
     def dump(self, verb=True):
         if(verb is True):
+            print('----')
             print(" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)"%(self.ini_x, self.ini_y, self.ini_z, self.end_x, self.end_y, self.end_z))
+            print('z-overlap ', self.ini_z_overlap, ' to ', self.end_z_overlap)
             print(" theta, phi: [ini] %.2f ; %.2f"%(self.ini_theta, self.ini_phi), " -> [end] %.2f ; %.2f "%( self.end_theta, self.end_phi), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_v0, self.len_path_v1, self.len_straight_v0, self.len_straight_v1))
-            print(" corr : %.2f cm / %.2f mus"%(self.z0_corr, self.t0_corr))
+
+            print(" corr : z: %.2f cm / t: %.2f mus"%(self.z0_corr, self.t0_corr))
+            
             print(" charge V0: %.2f, V1: %.2f A= %.3f"%(self.tot_charge_v0, self.tot_charge_v1, (self.tot_charge_v0-self.tot_charge_v1)/(self.tot_charge_v0+self.tot_charge_v1)))
             print("field corrected ")
+            print(' track z bound ', self.ini_field_corr_z, ' to ', self.end_field_corr_z)
+            print(' track z overlap ', self.ini_field_corr_z_overlap, ' to ', self.end_field_corr_z_overlap)
+
             print(" theta, phi: [ini] %.2f ; %.2f"%(self.ini_theta_field_corr, self.ini_phi_field_corr), " -> [end] %.2f ; %.2f "%( self.end_theta_field_corr, self.end_phi_field_corr), " L = (P) %.2f / %.2f ; (S) %.2f / %.2f"%(self.len_path_field_corr_v0, self.len_path_field_corr_v1, self.len_straight_field_corr_v0, self.len_straight_field_corr_v1))
-            print(" corr : %.2f cm / %.2f mus"%(self.z0_field_corr, self.t0_field_corr))
+            print(" corr : z %.2f cm / t %.2f mus"%(self.z0_field_corr, self.t0_field_corr))
             print(" charge V0: %.2f, V1: %.2f A= %.3f"%(self.tot_charge_field_corr_v0, self.tot_charge_field_corr_v1, (self.tot_charge_field_corr_v0-self.tot_charge_field_corr_v1)/(self.tot_charge_field_corr_v0+self.tot_charge_field_corr_v1)))
