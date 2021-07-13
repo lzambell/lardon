@@ -71,6 +71,9 @@ class Tracks3D(IsDescription):
     z_end   = Float32Col()
     chi2    = Float32Col()
 
+    z_ini_overlap = Float32Col()
+    z_end_overlap = Float32Col()
+
     theta_ini = Float32Col()
     theta_end = Float32Col()
     phi_ini   = Float32Col()
@@ -85,6 +88,15 @@ class Tracks3D(IsDescription):
     len_path_field_corr     = Float32Col(shape=(cf.n_View))
     total_charge_field_corr   = Float32Col(shape=(cf.n_View))
 
+    theta_ini_field_corr = Float32Col()
+    theta_end_field_corr = Float32Col()
+    phi_ini_field_corr   = Float32Col()
+    phi_end_field_corr   = Float32Col()
+
+    z_ini_field_corr   = Float32Col()
+    z_end_field_corr   = Float32Col()
+    z_ini_overlap_field_corr = Float32Col()
+    z_end_overlap_field_corr = Float32Col()
 
     z0_corr = Float32Col()
     t0_corr = Float32Col()
@@ -214,6 +226,9 @@ def store_tracks3D(h5file, group):
         t3d['y_end']     = t.end_y
         t3d['z_end']     = t.end_z
 
+        t3d['z_ini_overlap'] = t.ini_z_overlap
+        t3d['z_end_overlap'] = t.end_z_overlap
+
         t3d['chi2']      = t.chi2
         t3d['nHits']     = [t.nHits_v0, t.nHits_v1]
         t3d['len_straight'] = [t.len_straight_v0, t.len_straight_v1]
@@ -229,6 +244,19 @@ def store_tracks3D(h5file, group):
         t3d['theta_end'] = t.end_theta
         t3d['phi_ini']   = t.ini_phi
         t3d['phi_end']   = t.end_phi
+
+
+        t3d['theta_ini_field_corr'] = t.ini_theta_field_corr
+        t3d['theta_end_field_corr'] = t.end_theta_field_corr
+        t3d['phi_ini_field_corr']   = t.ini_phi_field_corr
+        t3d['phi_end_field_corr']   = t.end_phi_field_corr
+
+        t3d['z_ini_field_corr'] = t.ini_field_corr_z
+        t3d['z_end_field_corr'] = t.end_field_corr_z
+        t3d['z_ini_overlap_field_corr'] = t.ini_field_corr_z_overlap
+        t3d['z_end_overlap_field_corr'] = t.end_field_corr_z_overlap
+
+
 
         t3d['z0_corr']    = t.z0_corr
         t3d['t0_corr']    = t.t0_corr
@@ -247,15 +275,94 @@ def store_tracks3D(h5file, group):
 
 
 def create_lite(h5file):
-    table = h5file.create_table("/", 'tracks3D', Tracks3D, "Tracks 3D")           
-    t = h5file.create_vlarray("/", 'pathv0', Float32Atom(shape=(6)), "Path V0 (x, y, z, q, zcorr, qcorr)")    
-    t = h5file.create_vlarray("/", 'pathv1', Float32Atom(shape=(6)), "Path V1 (x, y, z, q, zcorr, qcorr)")    
-       
+    table = h5file.create_table("/", 'infos', Infos, 'Infos')
+    table = h5file.create_table("/", 'event', Event, "Event")
+    table = h5file.create_table("/", 'pedestals', Pedestal, 'Pedestals')
+    table = h5file.create_table("/", 'hits', Hits, "Hits")
+
+    table = h5file.create_table("/", 'tracks2D', Tracks2D, "Tracks 2D")
+    t = h5file.create_vlarray("/", 'trk2d_v0', Float32Atom(shape=(3)), "2D Path V0 (x, z, q)")
+    t = h5file.create_vlarray("/", 'trk2d_v1', Float32Atom(shape=(3)), "2D Path V1 (y, z, q)")    
+
+
+    table = h5file.create_table("/", 'tracks3D', Tracks3D, "Tracks 3D")  
+    t = h5file.create_vlarray("/", 'trk3d_v0', Float32Atom(shape=(6)), "3D Path V0 (x, y, z, q, zcorr, qcorr)")    
+    t = h5file.create_vlarray("/", 'trk3d_v1', Float32Atom(shape=(6)), "3D Path V1 (x, y, z, q, zcorr, qcorr)")    
+
+
+
+
+def store_pedestal_lite(h5file):
+
+    ped = h5file.root.pedestals.row
+    """ to change to array """
+
+    for x in dc.map_ped:
+        ped['crp']       = x.crp
+        ped['view']      = x.view
+        ped['channel']   = x.vchan
+        ped['raw_mean']  = x.raw_ped
+        ped['raw_rms']   = x.raw_rms
+        ped['filt_mean'] = x.evt_ped
+        ped['filt_rms']  = x.evt_rms
+        ped.append()
+    #table.flush()
+
+def store_hits_lite(h5file):
+    hit = h5file.root.hits.row
+
+    for h in dc.hits_list:
+        hit['crp']     = h.crp
+        hit['view']    = h.view
+        hit['channel'] = h.channel
+        hit['tdc_max'] = h.max_t
+        hit['z']       = h.Z
+        hit['x']       = h.X
+        hit['dt']      = (h.stop - h.start)*cf.n_Sampling
+        hit['adc_max'] = h.max_adc
+        hit['charge']  = h.charge
+        hit['cluster'] = h.cluster
+        hit['z_start'] = h.Z_start
+        hit['z_stop']  = h.Z_stop
+        hit.append()
+
+
+
+def store_tracks2D_lite(h5file):
+    t2d   = h5file.root.tracks2D.row
+    vlv0  = h5file.root.trk2d_v0
+    vlv1  = h5file.root.trk2d_v1
+
+    for t in dc.tracks2D_list:
+        t2d['view']      = t.view
+        t2d['crp_ini']   = t.ini_crp
+        t2d['crp_end']   = t.end_crp
+        t2d['pos_ini']   = t.path[0][0]
+        t2d['z_ini']     = t.path[0][1]
+        t2d['pos_end']   = t.path[-1][0]
+        t2d['z_end']     = t.path[-1][1]
+        t2d['nHits']     = t.nHits
+        t2d['slope_ini'] = t.ini_slope
+        t2d['slope_end'] = t.end_slope
+        t2d['chi2']      = t.chi2
+        t2d['len_straight'] = t.len_straight
+        t2d['len_path']     = t.len_path
+        t2d['total_charge'] = t.tot_charge
+        pts = [[p[0], p[1], q] for p,q in zip(t.path,t.dQ)]
+
+        if(t.view==0):
+            vlv0.append(pts)
+        else:
+            vlv1.append(pts)
+
+        t2d.append()
+    #table.flush()
+
 
 def store_tracks3D_lite(h5file):    
     t3d = h5file.root.tracks3D.row
-    vlv0  = h5file.root.pathv0
-    vlv1  = h5file.root.pathv1
+    vlv0  = h5file.root.trk3d_v0
+    vlv1  = h5file.root.trk3d_v1
 
     for t in dc.tracks3D_list:
         t3d['crp_ini']   = t.ini_crp
@@ -267,6 +374,10 @@ def store_tracks3D_lite(h5file):
         t3d['x_end']     = t.end_x
         t3d['y_end']     = t.end_y
         t3d['z_end']     = t.end_z
+
+
+        t3d['z_ini_overlap'] = t.ini_z_overlap
+        t3d['z_end_overlap'] = t.end_z_overlap
 
         t3d['chi2']      = t.chi2
         t3d['nHits']     = [t.nHits_v0, t.nHits_v1]
@@ -284,6 +395,19 @@ def store_tracks3D_lite(h5file):
         t3d['theta_end'] = t.end_theta
         t3d['phi_ini']   = t.ini_phi
         t3d['phi_end']   = t.end_phi
+
+
+
+        t3d['theta_ini_field_corr'] = t.ini_theta_field_corr
+        t3d['theta_end_field_corr'] = t.end_theta_field_corr
+        t3d['phi_ini_field_corr']   = t.ini_phi_field_corr
+        t3d['phi_end_field_corr']   = t.end_phi_field_corr
+
+        t3d['z_ini_field_corr'] = t.ini_field_corr_z
+        t3d['z_end_field_corr'] = t.end_field_corr_z
+        t3d['z_ini_overlap_field_corr'] = t.ini_field_corr_z_overlap
+        t3d['z_end_overlap_field_corr'] = t.end_field_corr_z_overlap
+
 
         t3d['z0_corr']    = t.z0_corr
         t3d['t0_corr']    = t.t0_corr
