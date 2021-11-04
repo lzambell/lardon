@@ -110,6 +110,7 @@ def t0_corr_from_reco(trk, tol):
     delta_x = cf.len_det_x/2.
     delta_y = cf.len_det_y/2.
     
+    trk.boundaries()
 
     from_top  = (z_top - trk.ini_z) < tol
     exit_bot  = (math.fabs(z_bot - trk.end_z)) < tol
